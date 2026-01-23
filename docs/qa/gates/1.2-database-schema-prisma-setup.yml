@@ -1,0 +1,71 @@
+# Quality Gate: Story 1.2
+schema: 1
+story: "1.2"
+story_title: "Database Schema & Prisma Setup"
+gate: PASS
+status_reason: "All ACs validated - Prisma configured, User schema created, migration applied to Supabase, seed working"
+reviewer: "Quinn (Test Architect)"
+updated: "2026-01-21T16:00:00Z"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "Consider changing default Super-Admin password in production"
+
+evidence:
+  ac_validation:
+    - ac: 1
+      status: PASS
+      notes: "Prisma 5.22.0 installed and connected to Supabase PostgreSQL"
+    - ac: 2
+      status: PASS
+      notes: "User schema created with all required fields (id, email, passwordHash, firstName, lastName, role, isActive, createdAt, updatedAt)"
+    - ac: 3
+      status: PASS
+      notes: "Role enum defined with SUPER_ADMIN, STAFF, CONTRIBUTOR, GUEST"
+    - ac: 4
+      status: PASS
+      notes: "Migration 20260121154131_init created and applied to Supabase"
+    - ac: 5
+      status: PASS
+      notes: "Prisma Client configured as singleton in apps/api/src/config/database.ts"
+    - ac: 6
+      status: PASS
+      notes: "Seed script creates Super-Admin (admin@ong-chadia.org)"
+    - ac: 7
+      status: PASS
+      notes: "Types (User, UserPublic, Role) exported from packages/shared"
+    - ac: 8
+      status: PASS
+      notes: "README updated with Database section, ER diagram, and scripts documentation"
+
+  commands_verified:
+    - command: "pnpm db:generate"
+      result: PASS
+    - command: "pnpm db:migrate"
+      result: PASS
+    - command: "pnpm db:seed"
+      result: PASS
+    - command: "pnpm build"
+      result: PASS
+    - command: "pnpm lint"
+      result: PASS
+
+  files_verified:
+    - prisma/schema.prisma
+    - prisma/seed.ts
+    - prisma/migrations/20260121154131_init/migration.sql
+    - apps/api/src/config/database.ts
+    - packages/shared/src/types/user.ts
+    - packages/shared/src/types/enums.ts
+
+history:
+  - at: "2026-01-21T16:00:00Z"
+    gate: PASS
+    note: "Initial review - all ACs validated"

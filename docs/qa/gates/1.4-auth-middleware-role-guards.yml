@@ -1,0 +1,98 @@
+# Quality Gate: Story 1.4
+schema: 1
+story: "1.4"
+story_title: "Auth Middleware & Role Guards"
+gate: PASS
+status_reason: "All ACs validated - Auth/RBAC/Validate middlewares implemented with 57 tests passing"
+reviewer: "Quinn (Test Architect)"
+updated: "2026-01-21T18:15:00Z"
+
+waiver: { active: false }
+
+top_issues: []
+
+risk_summary:
+  totals: { critical: 0, high: 0, medium: 0, low: 0 }
+  recommendations:
+    must_fix: []
+    monitor:
+      - "Consider adding integration tests for auth middleware with real DB in future stories"
+
+quality_score: 100
+
+evidence:
+  ac_validation:
+    - ac: 1
+      status: PASS
+      notes: "authenticate middleware verifies JWT and attaches req.user with full profile"
+    - ac: 2
+      status: PASS
+      notes: "authorize() factory function checks user role against allowed roles"
+    - ac: 3
+      status: PASS
+      notes: "isSuperAdmin guard implemented = authorize(Role.SUPER_ADMIN)"
+    - ac: 4
+      status: PASS
+      notes: "isStaffOrAbove guard implemented = authorize(Role.SUPER_ADMIN, Role.STAFF)"
+    - ac: 5
+      status: PASS
+      notes: "Token expiration handled with clear 401 'Invalid or expired token' message"
+    - ac: 6
+      status: PASS
+      notes: "Invalid tokens return 401 with appropriate error messages"
+    - ac: 7
+      status: PASS
+      notes: "Insufficient roles return 403 'Insufficient permissions'"
+    - ac: 8
+      status: PASS
+      notes: "57 unit tests passing - rbac (16), validate (9), auth (12), jwt (8), hash (5), validators (7)"
+    - ac: 9
+      status: PASS
+      notes: "Documentation at apps/api/docs/middleware.md with examples"
+
+  commands_verified:
+    - command: "pnpm build"
+      result: PASS
+    - command: "pnpm lint"
+      result: PASS
+      notes: "1 warning (console.log in index.ts) - acceptable"
+    - command: "pnpm --filter api test"
+      result: PASS
+      notes: "57 tests passing"
+
+  files_verified:
+    - apps/api/src/middleware/auth.middleware.ts
+    - apps/api/src/middleware/rbac.middleware.ts
+    - apps/api/src/middleware/validate.middleware.ts
+    - apps/api/src/types/express.d.ts
+    - apps/api/tests/unit/rbac.middleware.test.ts
+    - apps/api/tests/unit/validate.middleware.test.ts
+    - apps/api/tests/unit/auth.middleware.test.ts
+    - apps/api/docs/middleware.md
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: "JWT verification, token type check, user active check all implemented"
+  performance:
+    status: PASS
+    notes: "Single DB query for user lookup, efficient role checking"
+  reliability:
+    status: PASS
+    notes: "Proper error handling with specific error messages"
+  maintainability:
+    status: PASS
+    notes: "Clean code, JSDoc comments, comprehensive documentation"
+
+recommendations:
+  immediate: []
+  future:
+    - action: "Add integration tests for authenticate middleware with real DB"
+      refs: ["apps/api/tests/integration/"]
+    - action: "Consider rate limiting for auth endpoints"
+      refs: ["apps/api/src/middleware/"]
+
+history:
+  - at: "2026-01-21T18:15:00Z"
+    gate: PASS
+    note: "Initial review - all ACs validated, 57 tests passing"

@@ -1,0 +1,40 @@
+{
+  "name": "ong-chadia-platform",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api dev",
+    "build": "pnpm run --parallel build",
+    "lint": "pnpm run --parallel lint",
+    "test": "pnpm run --parallel test",
+    "db:migrate": "dotenv -e apps/api/.env -- prisma migrate dev",
+    "db:push": "dotenv -e apps/api/.env -- prisma db push",
+    "db:seed": "dotenv -e apps/api/.env -- prisma db seed",
+    "db:studio": "dotenv -e apps/api/.env -- prisma studio",
+    "db:generate": "dotenv -e apps/api/.env -- prisma generate"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/parser": "^8.53.1",
+    "dotenv-cli": "^11.0.0",
+    "eslint": "^8.55.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.0",
+    "prisma": "^5.22.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
