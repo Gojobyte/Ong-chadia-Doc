@@ -39,9 +39,10 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  refreshTokens RefreshToken[]
-  folders       Folder[]
-  documents     Document[]
+  refreshTokens    RefreshToken[]
+  folders          Folder[]
+  documents        Document[]
+  documentVersions DocumentVersion[]
 
   @@map("users")
 }
@@ -98,18 +99,41 @@ model FolderPermission {
 
 // DOCUMENT MODEL - GED Files
 model Document {
-  id           String   @id @default(cuid())
-  name         String
-  mimeType     String   @map("mime_type")
-  size         Int      // in bytes
-  storagePath  String   @unique @map("storage_path")
-  folderId     String   @map("folder_id")
-  folder       Folder   @relation(fields: [folderId], references: [id], onDelete: Restrict)
-  uploadedById String   @map("uploaded_by_id")
-  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
-  createdAt    DateTime @default(now()) @map("created_at")
+  id               String            @id @default(cuid())
+  name             String
+  mimeType         String            @map("mime_type")
+  size             Int               // in bytes
+  storagePath      String            @unique @map("storage_path")
+  folderId         String            @map("folder_id")
+  folder           Folder            @relation(fields: [folderId], references: [id], onDelete: Restrict)
+  uploadedById     String            @map("uploaded_by_id")
+  uploadedBy       User              @relation(fields: [uploadedById], references: [id])
+  currentVersionId String?           @unique @map("current_version_id")
+  currentVersion   DocumentVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
+  versions         DocumentVersion[] @relation("DocumentVersions")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
 
   @@index([folderId])
   @@index([uploadedById])
   @@map("documents")
+}
+
+// DOCUMENT VERSION MODEL - Version History
+model DocumentVersion {
+  id            String    @id @default(cuid())
+  documentId    String    @map("document_id")
+  document      Document  @relation("DocumentVersions", fields: [documentId], references: [id], onDelete: Cascade)
+  versionNumber Int       @map("version_number")
+  storagePath   String    @unique @map("storage_path")
+  size          Int       // in bytes
+  uploadedById  String    @map("uploaded_by_id")
+  uploadedBy    User      @relation(fields: [uploadedById], references: [id])
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  currentFor    Document? @relation("CurrentVersion")
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+  @@map("document_versions")
 }

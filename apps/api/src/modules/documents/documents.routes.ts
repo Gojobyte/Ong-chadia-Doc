@@ -5,6 +5,7 @@ import { validateParams, validate } from '../../middleware/validate.middleware.j
 import { canAccessDocument, canMoveDocument } from '../../middleware/document-access.middleware.js';
 import { UnsupportedFileTypeError } from '../../common/errors.js';
 import * as documentsController from './documents.controller.js';
+import * as versionsController from './versions.controller.js';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './documents.service.js';
 import { z } from 'zod';
 
@@ -13,6 +14,11 @@ const router: RouterType = Router();
 // Zod schemas for validation
 const documentIdSchema = z.object({
   id: z.string().cuid('ID de document invalide'),
+});
+
+const versionIdSchema = z.object({
+  id: z.string().cuid('ID de document invalide'),
+  versionId: z.string().cuid('ID de version invalide'),
 });
 
 const updateDocumentSchema = z.object({
@@ -77,6 +83,43 @@ router.delete(
   validateParams(documentIdSchema),
   canAccessDocument('WRITE'),
   documentsController.deleteDocument
+);
+
+// =====================
+// VERSION ROUTES
+// =====================
+
+// POST /api/documents/:id/versions - Upload a new version
+router.post(
+  '/:id/versions',
+  validateParams(documentIdSchema),
+  canAccessDocument('WRITE'),
+  upload.single('file'),
+  versionsController.uploadNewVersion
+);
+
+// GET /api/documents/:id/versions - Get all versions
+router.get(
+  '/:id/versions',
+  validateParams(documentIdSchema),
+  canAccessDocument('READ'),
+  versionsController.getVersions
+);
+
+// GET /api/documents/:id/versions/:versionId/download - Download a specific version
+router.get(
+  '/:id/versions/:versionId/download',
+  validateParams(versionIdSchema),
+  canAccessDocument('READ'),
+  versionsController.getVersionDownloadUrl
+);
+
+// POST /api/documents/:id/versions/:versionId/restore - Restore a version
+router.post(
+  '/:id/versions/:versionId/restore',
+  validateParams(versionIdSchema),
+  canAccessDocument('WRITE'),
+  versionsController.restoreVersion
 );
 
 export default router;
