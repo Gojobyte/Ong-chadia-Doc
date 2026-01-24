@@ -20,6 +20,13 @@ enum Role {
   GUEST
 }
 
+// ENUM - Folder Permissions
+enum Permission {
+  READ
+  WRITE
+  ADMIN
+}
+
 // USER MODEL
 model User {
   id           String   @id @default(uuid())
@@ -65,8 +72,24 @@ model Folder {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  permissions FolderPermission[]
+
   @@unique([name, parentId])
   @@index([parentId])
   @@index([createdById])
   @@map("folders")
+}
+
+// FOLDER PERMISSION MODEL - Access Control
+model FolderPermission {
+  id         String     @id @default(cuid())
+  folderId   String     @map("folder_id")
+  folder     Folder     @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  role       Role
+  permission Permission
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  @@unique([folderId, role])
+  @@index([folderId])
+  @@map("folder_permissions")
 }

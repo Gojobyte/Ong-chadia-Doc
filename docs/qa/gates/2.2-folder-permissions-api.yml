@@ -1,0 +1,42 @@
+schema: 1
+story: '2.2'
+story_title: 'Folder Permissions API'
+gate: PASS
+status_reason: 'All 10 acceptance criteria implemented with comprehensive test coverage (28 tests). Permission inheritance and hierarchy correctly implemented.'
+reviewer: 'Quinn (Test Architect)'
+updated: '2026-01-24T13:00:00Z'
+
+top_issues: []
+waiver: { active: false }
+
+quality_score: 95
+expires: '2026-02-07T13:00:00Z'
+
+evidence:
+  tests_reviewed: 28
+  risks_identified: 0
+  trace:
+    ac_covered: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    ac_gaps: []
+
+nfr_validation:
+  security:
+    status: PASS
+    notes: 'Permission checks implemented. Staff+ role required for permission management. Super Admin bypass working correctly.'
+  performance:
+    status: PASS
+    notes: 'Recursive inheritance uses efficient single-query per level. Could be optimized with CTE in future if deep hierarchies needed.'
+  reliability:
+    status: PASS
+    notes: 'Proper error handling with typed errors. Upsert used for safe permission updates.'
+  maintainability:
+    status: PASS
+    notes: 'Clean service/controller separation. Well-documented permission hierarchy.'
+
+recommendations:
+  immediate: []
+  future:
+    - action: 'Consider caching effective permissions for frequently accessed folders'
+      refs: ['apps/api/src/modules/folders/permissions.service.ts']
+    - action: 'Add audit logging for permission changes in future story'
+      refs: ['apps/api/src/modules/folders/permissions.service.ts']
