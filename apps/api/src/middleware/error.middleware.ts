@@ -17,8 +17,11 @@ export function errorHandler(
     });
   }
 
-  // Log unexpected errors
-  console.error('Unexpected error:', error);
+  // Log unexpected errors with full details
+  console.error('=== UNEXPECTED ERROR ===');
+  console.error('Message:', error.message);
+  console.error('Stack:', error.stack);
+  console.error('========================');
 
   return res.status(500).json({
     error: {
