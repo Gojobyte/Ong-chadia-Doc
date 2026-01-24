@@ -1,7 +1,8 @@
 import { Router, type Router as RouterType } from 'express';
 import multer from 'multer';
 import { authenticate } from '../../middleware/auth.middleware.js';
-import { validateParams } from '../../middleware/validate.middleware.js';
+import { validateParams, validate } from '../../middleware/validate.middleware.js';
+import { canAccessDocument, canMoveDocument } from '../../middleware/document-access.middleware.js';
 import { UnsupportedFileTypeError } from '../../common/errors.js';
 import * as documentsController from './documents.controller.js';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './documents.service.js';
@@ -12,6 +13,13 @@ const router: RouterType = Router();
 // Zod schemas for validation
 const documentIdSchema = z.object({
   id: z.string().cuid('ID de document invalide'),
+});
+
+const updateDocumentSchema = z.object({
+  name: z.string().min(1, 'Le nom ne peut pas être vide').max(255).optional(),
+  folderId: z.string().cuid('ID de dossier invalide').optional(),
+}).refine(data => data.name || data.folderId, {
+  message: 'Au moins un champ doit être fourni (name ou folderId)',
 });
 
 // Configure multer for file upload
@@ -41,13 +49,33 @@ router.post(
 router.get(
   '/:id',
   validateParams(documentIdSchema),
+  canAccessDocument('READ'),
   documentsController.getDocumentById
+);
+
+// GET /api/documents/:id/download - Get download URL
+router.get(
+  '/:id/download',
+  validateParams(documentIdSchema),
+  canAccessDocument('READ'),
+  documentsController.getDownloadUrl
+);
+
+// PATCH /api/documents/:id - Update document (rename or move)
+router.patch(
+  '/:id',
+  validateParams(documentIdSchema),
+  validate(updateDocumentSchema),
+  canAccessDocument('WRITE'),
+  canMoveDocument(),
+  documentsController.updateDocument
 );
 
 // DELETE /api/documents/:id - Delete a document
 router.delete(
   '/:id',
   validateParams(documentIdSchema),
+  canAccessDocument('WRITE'),
   documentsController.deleteDocument
 );
 

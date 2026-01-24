@@ -126,13 +126,22 @@ export async function getDocumentById(id: string): Promise<DocumentResponse> {
   return mapDocumentToResponse(document, url);
 }
 
+// Allowed sort fields and order
+const ALLOWED_SORT_FIELDS = ['name', 'createdAt', 'size'] as const;
+const ALLOWED_ORDER = ['asc', 'desc'] as const;
+
+type SortField = typeof ALLOWED_SORT_FIELDS[number];
+type SortOrder = typeof ALLOWED_ORDER[number];
+
 /**
- * Get documents in a folder
+ * Get documents in a folder with pagination and sorting
  */
 export async function getDocumentsByFolder(
   folderId: string,
   page = 1,
-  limit = 50
+  limit = 50,
+  sort: string = 'createdAt',
+  order: string = 'desc'
 ): Promise<{
   data: DocumentResponse[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
@@ -143,6 +152,14 @@ export async function getDocumentsByFolder(
     throw new NotFoundError('Dossier non trouvé');
   }
 
+  // Validate sort field and order
+  const sortField: SortField = ALLOWED_SORT_FIELDS.includes(sort as SortField)
+    ? (sort as SortField)
+    : 'createdAt';
+  const sortOrder: SortOrder = ALLOWED_ORDER.includes(order as SortOrder)
+    ? (order as SortOrder)
+    : 'desc';
+
   const skip = (page - 1) * limit;
 
   const [documents, total] = await Promise.all([
@@ -150,7 +167,7 @@ export async function getDocumentsByFolder(
       where: { folderId },
       skip,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { [sortField]: sortOrder },
     }),
     prisma.document.count({ where: { folderId } }),
   ]);
@@ -172,6 +189,69 @@ export async function getDocumentsByFolder(
       totalPages: Math.ceil(total / limit),
     },
   };
+}
+
+/**
+ * Get a download URL for a document
+ */
+export async function getDownloadUrl(id: string): Promise<{ url: string; expiresIn: number }> {
+  const document = await prisma.document.findUnique({ where: { id } });
+
+  if (!document) {
+    throw new NotFoundError('Document non trouvé');
+  }
+
+  const expiresIn = 3600; // 1 hour
+  const url = await storageService.getSignedUrl(document.storagePath, expiresIn);
+
+  return { url, expiresIn };
+}
+
+/**
+ * Update document (rename or move)
+ */
+export async function updateDocument(
+  id: string,
+  data: { name?: string; folderId?: string }
+): Promise<DocumentResponse> {
+  const document = await prisma.document.findUnique({ where: { id } });
+
+  if (!document) {
+    throw new NotFoundError('Document non trouvé');
+  }
+
+  // If moving to a new folder, verify the destination folder exists
+  if (data.folderId && data.folderId !== document.folderId) {
+    const destinationFolder = await prisma.folder.findUnique({
+      where: { id: data.folderId },
+    });
+    if (!destinationFolder) {
+      throw new NotFoundError('Dossier de destination non trouvé');
+    }
+  }
+
+  // Update the document
+  const updatedDocument = await prisma.document.update({
+    where: { id },
+    data: {
+      ...(data.name && { name: data.name }),
+      ...(data.folderId && { folderId: data.folderId }),
+    },
+  });
+
+  const url = await storageService.getSignedUrl(updatedDocument.storagePath);
+  return mapDocumentToResponse(updatedDocument, url);
+}
+
+/**
+ * Get document folder ID (for permission checks)
+ */
+export async function getDocumentFolderId(id: string): Promise<string | null> {
+  const document = await prisma.document.findUnique({
+    where: { id },
+    select: { folderId: true },
+  });
+  return document?.folderId ?? null;
 }
 
 /**

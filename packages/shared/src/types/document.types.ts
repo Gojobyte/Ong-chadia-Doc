@@ -20,6 +20,32 @@ export interface UploadDocumentDto {
 }
 
 /**
+ * Update document DTO (rename or move)
+ */
+export interface UpdateDocumentDto {
+  name?: string;
+  folderId?: string;
+}
+
+/**
+ * Document list query parameters
+ */
+export interface DocumentListQueryParams {
+  page?: number;
+  limit?: number;
+  sort?: 'name' | 'createdAt' | 'size';
+  order?: 'asc' | 'desc';
+}
+
+/**
+ * Download URL response
+ */
+export interface DownloadUrlResponse {
+  url: string;
+  expiresIn: number;
+}
+
+/**
  * Allowed MIME types for document upload
  */
 export const ALLOWED_MIME_TYPES = [

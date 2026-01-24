@@ -8,6 +8,7 @@ const mockDocumentFindUnique = jest.fn<(args: Prisma.DocumentFindUniqueArgs) => 
 const mockDocumentFindMany = jest.fn<(args?: Prisma.DocumentFindManyArgs) => Promise<Document[]>>();
 const mockDocumentCount = jest.fn<(args?: Prisma.DocumentCountArgs) => Promise<number>>();
 const mockDocumentDelete = jest.fn<(args: Prisma.DocumentDeleteArgs) => Promise<Document>>();
+const mockDocumentUpdate = jest.fn<(args: Prisma.DocumentUpdateArgs) => Promise<Document>>();
 
 // Mock storage service
 const mockUploadFile = jest.fn<(buffer: Buffer, path: string, mimeType: string) => Promise<string>>();
@@ -27,6 +28,7 @@ jest.unstable_mockModule('../../src/config/database.js', () => ({
       findMany: mockDocumentFindMany,
       count: mockDocumentCount,
       delete: mockDocumentDelete,
+      update: mockDocumentUpdate,
     },
   },
 }));
@@ -50,6 +52,8 @@ const {
   getDocumentById,
   getDocumentsByFolder,
   deleteDocument,
+  getDownloadUrl,
+  updateDocument,
   ALLOWED_MIME_TYPES,
   MAX_FILE_SIZE,
 } = await import('../../src/modules/documents/documents.service.js');
@@ -217,6 +221,143 @@ describe('DocumentsService', () => {
       mockDocumentFindUnique.mockResolvedValue(null);
 
       await expect(deleteDocument('nonexistent')).rejects.toThrow('Document non trouvé');
+    });
+  });
+
+  describe('getDownloadUrl', () => {
+    it('should return download URL with expiration', async () => {
+      const mockDocument = {
+        id: 'doc1',
+        name: 'test.pdf',
+        storagePath: 'org/folder1/uuid_test.pdf',
+      };
+
+      mockDocumentFindUnique.mockResolvedValue(mockDocument as unknown as Document);
+
+      const result = await getDownloadUrl('doc1');
+
+      expect(result.url).toBe('https://storage.example.com/signed-url');
+      expect(result.expiresIn).toBe(3600);
+    });
+
+    it('should throw NotFoundError if document does not exist', async () => {
+      mockDocumentFindUnique.mockResolvedValue(null);
+
+      await expect(getDownloadUrl('nonexistent')).rejects.toThrow('Document non trouvé');
+    });
+  });
+
+  describe('updateDocument', () => {
+    it('should rename a document', async () => {
+      const mockDocument = {
+        id: 'doc1',
+        name: 'test.pdf',
+        mimeType: 'application/pdf',
+        size: 1024,
+        storagePath: 'org/folder1/uuid_test.pdf',
+        folderId: 'folder1',
+        uploadedById: 'user1',
+        createdAt: new Date('2026-01-01'),
+      };
+
+      const updatedDocument = { ...mockDocument, name: 'renamed.pdf' };
+
+      mockDocumentFindUnique.mockResolvedValue(mockDocument as unknown as Document);
+      mockDocumentUpdate.mockResolvedValue(updatedDocument as unknown as Document);
+
+      const result = await updateDocument('doc1', { name: 'renamed.pdf' });
+
+      expect(result.name).toBe('renamed.pdf');
+      expect(mockDocumentUpdate).toHaveBeenCalledWith({
+        where: { id: 'doc1' },
+        data: { name: 'renamed.pdf' },
+      });
+    });
+
+    it('should move a document to another folder', async () => {
+      const mockDocument = {
+        id: 'doc1',
+        name: 'test.pdf',
+        mimeType: 'application/pdf',
+        size: 1024,
+        storagePath: 'org/folder1/uuid_test.pdf',
+        folderId: 'folder1',
+        uploadedById: 'user1',
+        createdAt: new Date('2026-01-01'),
+      };
+
+      const destinationFolder = { id: 'folder2', name: 'New Folder' };
+      const movedDocument = { ...mockDocument, folderId: 'folder2' };
+
+      mockDocumentFindUnique.mockResolvedValue(mockDocument as unknown as Document);
+      mockFolderFindUnique.mockResolvedValue(destinationFolder as unknown as Folder);
+      mockDocumentUpdate.mockResolvedValue(movedDocument as unknown as Document);
+
+      const result = await updateDocument('doc1', { folderId: 'folder2' });
+
+      expect(result.folderId).toBe('folder2');
+    });
+
+    it('should throw NotFoundError if destination folder does not exist', async () => {
+      const mockDocument = {
+        id: 'doc1',
+        name: 'test.pdf',
+        folderId: 'folder1',
+      };
+
+      mockDocumentFindUnique.mockResolvedValue(mockDocument as unknown as Document);
+      mockFolderFindUnique.mockResolvedValue(null);
+
+      await expect(updateDocument('doc1', { folderId: 'nonexistent' })).rejects.toThrow(
+        'Dossier de destination non trouvé'
+      );
+    });
+  });
+
+  describe('getDocumentsByFolder with sorting', () => {
+    it('should sort documents by name ascending', async () => {
+      const mockFolder = { id: 'folder1', name: 'Documents' };
+      const mockDocuments = [
+        {
+          id: 'doc1',
+          name: 'alpha.pdf',
+          mimeType: 'application/pdf',
+          size: 1024,
+          storagePath: 'org/folder1/uuid_alpha.pdf',
+          folderId: 'folder1',
+          uploadedById: 'user1',
+          createdAt: new Date('2026-01-01'),
+        },
+      ];
+
+      mockFolderFindUnique.mockResolvedValue(mockFolder as unknown as Folder);
+      mockDocumentFindMany.mockResolvedValue(mockDocuments as unknown as Document[]);
+      mockDocumentCount.mockResolvedValue(1);
+
+      const result = await getDocumentsByFolder('folder1', 1, 50, 'name', 'asc');
+
+      expect(result.data).toHaveLength(1);
+      expect(mockDocumentFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { name: 'asc' },
+        })
+      );
+    });
+
+    it('should default to createdAt desc when invalid sort field provided', async () => {
+      const mockFolder = { id: 'folder1', name: 'Documents' };
+
+      mockFolderFindUnique.mockResolvedValue(mockFolder as unknown as Folder);
+      mockDocumentFindMany.mockResolvedValue([]);
+      mockDocumentCount.mockResolvedValue(0);
+
+      await getDocumentsByFolder('folder1', 1, 50, 'invalid', 'asc');
+
+      expect(mockDocumentFindMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { createdAt: 'asc' },
+        })
+      );
     });
   });
 });

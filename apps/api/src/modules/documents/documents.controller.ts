@@ -69,9 +69,47 @@ export async function getDocumentsByFolder(
     const folderId = req.params.id as string;
     const page = parseInt(req.query.page as string) || 1;
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const sort = (req.query.sort as string) || 'createdAt';
+    const order = (req.query.order as string) || 'desc';
 
-    const result = await documentsService.getDocumentsByFolder(folderId, page, limit);
+    const result = await documentsService.getDocumentsByFolder(folderId, page, limit, sort, order);
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/documents/:id/download - Get download URL
+ */
+export async function getDownloadUrl(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const result = await documentsService.getDownloadUrl(id);
+    res.json({ data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * PATCH /api/documents/:id - Update document (rename or move)
+ */
+export async function updateDocument(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const { name, folderId } = req.body;
+
+    const document = await documentsService.updateDocument(id, { name, folderId });
+    res.json({ data: document });
   } catch (error) {
     next(error);
   }
