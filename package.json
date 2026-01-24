@@ -2,6 +2,7 @@
   "name": "ong-chadia-platform",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "pnpm run --parallel dev",
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",
