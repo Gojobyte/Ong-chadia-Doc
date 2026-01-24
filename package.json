@@ -6,6 +6,7 @@
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",
     "build": "pnpm run --parallel build",
+    "build:api": "pnpm --filter @ong-chadia/shared build && pnpm --filter api build",
     "lint": "pnpm run --parallel lint",
     "test": "pnpm run --parallel test",
     "db:migrate": "dotenv -e apps/api/.env -- prisma migrate dev",
