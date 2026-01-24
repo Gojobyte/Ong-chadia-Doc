@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "vercel-build": "cd ../.. && pnpm --filter @ong-chadia/shared build && cd apps/web && tsc -b && vite build",
+    "build": "cd ../.. && pnpm --filter @ong-chadia/shared build && cd apps/web && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
