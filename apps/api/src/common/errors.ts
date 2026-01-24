@@ -39,3 +39,22 @@ export class ConflictError extends AppError {
     super(message, 409, 'CONFLICT');
   }
 }
+
+export class FileTooLargeError extends AppError {
+  constructor(maxSize: number = 50 * 1024 * 1024) {
+    const maxMB = Math.round(maxSize / (1024 * 1024));
+    super(`Le fichier dépasse la taille maximale autorisée (${maxMB} MB)`, 413, 'FILE_TOO_LARGE');
+  }
+}
+
+export class UnsupportedFileTypeError extends AppError {
+  constructor(mimeType: string) {
+    super(`Type de fichier non supporté: ${mimeType}`, 415, 'UNSUPPORTED_FILE_TYPE');
+  }
+}
+
+export class StorageError extends AppError {
+  constructor(message: string = 'Erreur de stockage') {
+    super(message, 500, 'STORAGE_ERROR');
+  }
+}

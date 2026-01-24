@@ -6,6 +6,7 @@ import { createFolderSchema, updateFolderSchema, folderIdSchema } from './folder
 import { createFolderPermissionSchema, permissionIdSchema } from './permissions.validators.js';
 import * as foldersController from './folders.controller.js';
 import * as permissionsController from './permissions.controller.js';
+import * as documentsController from '../documents/documents.controller.js';
 
 const router: RouterType = Router();
 
@@ -38,6 +39,17 @@ router.patch(
 
 // DELETE /api/folders/:id - Delete a folder
 router.delete('/:id', validateParams(folderIdSchema), foldersController.deleteFolder);
+
+// =====================
+// DOCUMENT ROUTES (within folder context)
+// =====================
+
+// GET /api/folders/:id/documents - Get documents in a folder
+router.get(
+  '/:id/documents',
+  validateParams(folderIdSchema),
+  documentsController.getDocumentsByFolder
+);
 
 // =====================
 // PERMISSION ROUTES

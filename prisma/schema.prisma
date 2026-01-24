@@ -41,6 +41,7 @@ model User {
 
   refreshTokens RefreshToken[]
   folders       Folder[]
+  documents     Document[]
 
   @@map("users")
 }
@@ -73,6 +74,7 @@ model Folder {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   permissions FolderPermission[]
+  documents   Document[]
 
   @@unique([name, parentId])
   @@index([parentId])
@@ -92,4 +94,22 @@ model FolderPermission {
   @@unique([folderId, role])
   @@index([folderId])
   @@map("folder_permissions")
+}
+
+// DOCUMENT MODEL - GED Files
+model Document {
+  id           String   @id @default(cuid())
+  name         String
+  mimeType     String   @map("mime_type")
+  size         Int      // in bytes
+  storagePath  String   @unique @map("storage_path")
+  folderId     String   @map("folder_id")
+  folder       Folder   @relation(fields: [folderId], references: [id], onDelete: Restrict)
+  uploadedById String   @map("uploaded_by_id")
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([folderId])
+  @@index([uploadedById])
+  @@map("documents")
 }

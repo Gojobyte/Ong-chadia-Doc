@@ -3,6 +3,7 @@ import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
 import { foldersRoutes } from './modules/folders/index.js';
+import { documentsRoutes } from './modules/documents/index.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 const app: Express = express();
@@ -39,6 +40,9 @@ app.use('/api/users', usersRoutes);
 
 // Folders routes (GED)
 app.use('/api/folders', foldersRoutes);
+
+// Documents routes (GED)
+app.use('/api/documents', documentsRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
