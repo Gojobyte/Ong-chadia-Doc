@@ -5,6 +5,8 @@ import type {
   DocumentListQueryParams,
   UpdateDocumentDto,
   DownloadUrlResponse,
+  VersionListResponse,
+  DocumentVersionResponse,
 } from '@ong-chadia/shared';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
@@ -139,5 +141,91 @@ export const documentsService = {
    */
   async delete(id: string): Promise<void> {
     await api.delete(`/documents/${id}`);
+  },
+
+  // =====================
+  // VERSION METHODS
+  // =====================
+
+  /**
+   * Get all versions of a document
+   */
+  async getVersions(documentId: string): Promise<VersionListResponse> {
+    const response = await api.get<VersionListResponse>(
+      `/documents/${documentId}/versions`
+    );
+    return response.data;
+  },
+
+  /**
+   * Upload a new version
+   */
+  async uploadVersion(
+    documentId: string,
+    file: File,
+    onProgress?: UploadProgressCallback
+  ): Promise<DocumentVersionResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            resolve(response);
+          } catch {
+            reject(new Error('Invalid server response'));
+          }
+        } else {
+          try {
+            const error = JSON.parse(xhr.responseText);
+            reject(new Error(error.error?.message || error.error || 'Upload failed'));
+          } catch {
+            reject(new Error(`Upload failed with status ${xhr.status}`));
+          }
+        }
+      });
+
+      xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+
+      xhr.open('POST', `${API_URL}/documents/${documentId}/versions`);
+
+      const token = useAuthStore.getState().accessToken;
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+
+      xhr.send(formData);
+    });
+  },
+
+  /**
+   * Get download URL for a specific version
+   */
+  async getVersionDownloadUrl(
+    documentId: string,
+    versionId: string
+  ): Promise<DownloadUrlResponse> {
+    const response = await api.get<DownloadUrlResponse>(
+      `/documents/${documentId}/versions/${versionId}/download`
+    );
+    return response.data;
+  },
+
+  /**
+   * Restore a previous version
+   */
+  async restoreVersion(documentId: string, versionId: string): Promise<void> {
+    await api.post(`/documents/${documentId}/versions/${versionId}/restore`);
   },
 };

@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import {
   FileText,
   File,
@@ -48,6 +47,7 @@ const FILE_TYPE_COLORS: Record<string, string> = {
 
 interface DocumentRowProps {
   document: DocumentResponse;
+  onClick?: (doc: DocumentResponse) => void;
   onRename?: (doc: DocumentResponse) => void;
   onDelete?: (doc: DocumentResponse) => void;
   onDownload?: (doc: DocumentResponse) => void;
@@ -55,6 +55,7 @@ interface DocumentRowProps {
 
 export function DocumentRow({
   document,
+  onClick,
   onRename,
   onDelete,
   onDownload,
@@ -66,12 +67,12 @@ export function DocumentRow({
   const extension = document.name.split('.').pop()?.toUpperCase() || '';
 
   return (
-    <tr className="hover:bg-slate-50/80 transition-colors group">
+    <tr
+      className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
+      onClick={() => onClick?.(document)}
+    >
       <td className="px-4 py-3">
-        <Link
-          to={`/documents/${document.id}`}
-          className="flex items-center gap-3 group-hover:text-primary-700"
-        >
+        <div className="flex items-center gap-3 group-hover:text-primary-700">
           <div className={`w-8 h-8 rounded flex items-center justify-center bg-slate-100 ${iconColor}`}>
             <IconComponent className="w-4 h-4" />
           </div>
@@ -80,7 +81,7 @@ export function DocumentRow({
               {document.name}
             </span>
           </div>
-        </Link>
+        </div>
       </td>
       <td className="px-4 py-3">
         <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded">

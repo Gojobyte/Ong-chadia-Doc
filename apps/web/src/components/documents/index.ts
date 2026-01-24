@@ -16,3 +16,7 @@ export { DropZone } from './DropZone';
 export { UploadProgress, type UploadItem } from './UploadProgress';
 export { RenameDocumentModal } from './RenameDocumentModal';
 export { DeleteDocumentModal } from './DeleteDocumentModal';
+export { DocumentDrawer } from './DocumentDrawer';
+export { DocumentPreview } from './DocumentPreview';
+export { MoveDocumentModal } from './MoveDocumentModal';
+export { VersionHistory } from './VersionHistory';

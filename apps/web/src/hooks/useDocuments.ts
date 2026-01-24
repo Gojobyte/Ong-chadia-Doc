@@ -147,3 +147,81 @@ export function useDocumentDownloadUrl(id: string | null) {
     staleTime: 1000 * 60 * 5, // URLs are valid for ~15 min, refetch after 5
   });
 }
+
+// =====================
+// VERSION HOOKS
+// =====================
+
+/**
+ * Get versions of a document
+ */
+export function useDocumentVersions(documentId: string | null) {
+  return useQuery({
+    queryKey: ['documents', documentId, 'versions'],
+    queryFn: () => documentsService.getVersions(documentId!),
+    enabled: !!documentId,
+  });
+}
+
+/**
+ * Upload new version mutation
+ */
+export function useUploadVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      documentId,
+      file,
+      onProgress,
+    }: {
+      documentId: string;
+      file: File;
+      onProgress?: (percent: number) => void;
+    }) => documentsService.uploadVersion(documentId, file, onProgress),
+    onSuccess: (_, { documentId }) => {
+      queryClient.invalidateQueries({ queryKey: ['documents', documentId] });
+      queryClient.invalidateQueries({ queryKey: ['documents', documentId, 'versions'] });
+      toast({
+        title: 'Succès',
+        description: 'Nouvelle version téléversée',
+        variant: 'success',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Erreur lors du téléversement',
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+/**
+ * Restore version mutation
+ */
+export function useRestoreVersion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId, versionId }: { documentId: string; versionId: string }) =>
+      documentsService.restoreVersion(documentId, versionId),
+    onSuccess: (_, { documentId }) => {
+      queryClient.invalidateQueries({ queryKey: ['documents', documentId] });
+      queryClient.invalidateQueries({ queryKey: ['documents', documentId, 'versions'] });
+      toast({
+        title: 'Succès',
+        description: 'Version restaurée',
+        variant: 'success',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erreur',
+        description: error.message || 'Erreur lors de la restauration',
+        variant: 'destructive',
+      });
+    },
+  });
+}

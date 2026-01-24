@@ -8,6 +8,7 @@ import { DropZone } from './DropZone';
 import { UploadProgress, type UploadItem } from './UploadProgress';
 import { RenameDocumentModal } from './RenameDocumentModal';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
+import { DocumentDrawer } from './DocumentDrawer';
 import { cn } from '@/lib/utils';
 import type { DocumentResponse, DocumentListQueryParams } from '@ong-chadia/shared';
 
@@ -35,6 +36,9 @@ export function DocumentList({ folderId }: DocumentListProps) {
     open: boolean;
     document: DocumentResponse | null;
   }>({ open: false, document: null });
+
+  // Drawer state
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
 
   // Queries
   const params: DocumentListQueryParams = {
@@ -222,6 +226,7 @@ export function DocumentList({ folderId }: DocumentListProps) {
                   <DocumentRow
                     key={doc.id}
                     document={doc}
+                    onClick={(d) => setSelectedDocumentId(d.id)}
                     onDownload={handleDownload}
                     onRename={handleRename}
                     onDelete={handleDelete}
@@ -264,6 +269,13 @@ export function DocumentList({ folderId }: DocumentListProps) {
           onClose={() => setDeleteModal({ open: false, document: null })}
         />
       )}
+
+      {/* Document Details Drawer */}
+      <DocumentDrawer
+        documentId={selectedDocumentId}
+        open={!!selectedDocumentId}
+        onClose={() => setSelectedDocumentId(null)}
+      />
     </div>
   );
 }
