@@ -1,0 +1,10 @@
+[build]
+builder = "nixpacks"
+
+[build.nixpacks]
+installCmd = "pnpm install"
+buildCmd = "pnpm --filter api build"
+
+[deploy]
+startCommand = "cd apps/api && node dist/index.js"
+healthcheckPath = "/health"
