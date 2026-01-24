@@ -6,6 +6,7 @@ import { canAccessDocument, canMoveDocument } from '../../middleware/document-ac
 import { UnsupportedFileTypeError } from '../../common/errors.js';
 import * as documentsController from './documents.controller.js';
 import * as versionsController from './versions.controller.js';
+import * as searchController from './search.controller.js';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './documents.service.js';
 import { z } from 'zod';
 
@@ -43,6 +44,9 @@ const upload = multer({
 
 // All routes require authentication
 router.use(authenticate);
+
+// GET /api/documents/search - Search documents (must be before :id routes)
+router.get('/search', searchController.searchDocuments);
 
 // POST /api/documents/upload - Upload a document
 router.post(

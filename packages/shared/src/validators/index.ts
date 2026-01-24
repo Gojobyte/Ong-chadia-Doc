@@ -9,3 +9,6 @@ export * from './document.validators';
 
 // Version validators
 export * from './version.validators';
+
+// Search validators
+export * from './search.validators';
