@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { Role } from '@prisma/client';
+import pkg from '@prisma/client';
+const { Role } = pkg;
 
 export const createUserSchema = z.object({
   email: z.string().email('Invalid email format'),

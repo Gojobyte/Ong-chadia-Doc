@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
-import { Role } from '@prisma/client';
+import pkg from '@prisma/client';
+const { Role } = pkg;
 import { ForbiddenError, UnauthorizedError } from '../common/errors.js';
 
 /**
