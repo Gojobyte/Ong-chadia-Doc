@@ -43,6 +43,8 @@ model User {
   folders          Folder[]
   documents        Document[]
   documentVersions DocumentVersion[]
+  shareLinks       ShareLink[]
+  accessLogs       AccessLog[]
 
   @@map("users")
 }
@@ -111,6 +113,8 @@ model Document {
   currentVersionId String?           @unique @map("current_version_id")
   currentVersion   DocumentVersion?  @relation("CurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull)
   versions         DocumentVersion[] @relation("DocumentVersions")
+  shareLinks       ShareLink[]
+  accessLogs       AccessLog[]
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
@@ -131,9 +135,56 @@ model DocumentVersion {
   uploadedBy    User      @relation(fields: [uploadedById], references: [id])
   createdAt     DateTime  @default(now()) @map("created_at")
 
-  currentFor    Document? @relation("CurrentVersion")
+  currentFor Document? @relation("CurrentVersion")
 
   @@unique([documentId, versionNumber])
   @@index([documentId])
   @@map("document_versions")
+}
+
+// ENUM - Access Actions for logging
+enum AccessAction {
+  VIEW
+  DOWNLOAD
+  SHARE
+  SHARE_REVOKE
+  EDIT
+  DELETE
+  SHARE_DOWNLOAD
+}
+
+// SHARE LINK MODEL - Document sharing with expiration
+model ShareLink {
+  id             String    @id @default(cuid())
+  documentId     String    @map("document_id")
+  document       Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  token          String    @unique
+  expiresAt      DateTime  @map("expires_at")
+  maxAccessCount Int?      @map("max_access_count") // null = unlimited
+  createdById    String    @map("created_by_id")
+  createdBy      User      @relation(fields: [createdById], references: [id])
+  accessCount    Int       @default(0) @map("access_count")
+  revokedAt      DateTime? @map("revoked_at") // null = active, date = revoked
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([documentId])
+  @@index([token])
+  @@map("share_links")
+}
+
+// ACCESS LOG MODEL - Document access audit trail
+model AccessLog {
+  id         String       @id @default(cuid())
+  documentId String       @map("document_id")
+  document   Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  userId     String?      @map("user_id") // null for share link access
+  user       User?        @relation(fields: [userId], references: [id])
+  action     AccessAction
+  ipAddress  String?      @map("ip_address")
+  metadata   Json?        // Additional info (share token used, etc.)
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  @@index([documentId, createdAt])
+  @@index([userId])
+  @@map("access_logs")
 }

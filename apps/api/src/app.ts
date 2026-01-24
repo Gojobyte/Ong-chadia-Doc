@@ -3,7 +3,7 @@ import cors from 'cors';
 import authRoutes from './modules/auth/auth.routes.js';
 import usersRoutes from './modules/users/users.routes.js';
 import { foldersRoutes } from './modules/folders/index.js';
-import { documentsRoutes } from './modules/documents/index.js';
+import { documentsRoutes, shareRoutes } from './modules/documents/index.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
 const app: Express = express();
@@ -43,6 +43,9 @@ app.use('/api/folders', foldersRoutes);
 
 // Documents routes (GED)
 app.use('/api/documents', documentsRoutes);
+
+// Share routes (public, no auth required)
+app.use('/api/share', shareRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

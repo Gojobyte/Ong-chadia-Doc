@@ -12,3 +12,6 @@ export * from './version.validators';
 
 // Search validators
 export * from './search.validators';
+
+// Share validators
+export * from './share.validators';

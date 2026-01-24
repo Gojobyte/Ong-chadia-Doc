@@ -23,11 +23,15 @@ import { useDocument, useDeleteDocument } from '@/hooks/useDocuments';
 import { documentsService } from '@/services/documents.service';
 import { DocumentPreview } from './DocumentPreview';
 import { VersionHistory } from './VersionHistory';
+import { ShareButton } from './ShareButton';
+import { ShareLinksManager } from './ShareLinksManager';
+import { AccessLogs } from './AccessLogs';
 import { RenameDocumentModal } from './RenameDocumentModal';
 import { MoveDocumentModal } from './MoveDocumentModal';
 import { DeleteDocumentModal } from './DeleteDocumentModal';
 import { formatFileSize, formatDate } from '@/lib/utils';
 import { toast } from '@/hooks/useToast';
+import { useAuthStore } from '@/store/authStore';
 
 interface DocumentDrawerProps {
   documentId: string | null;
@@ -37,11 +41,16 @@ interface DocumentDrawerProps {
 
 export function DocumentDrawer({ documentId, open, onClose }: DocumentDrawerProps) {
   const { data: document, isLoading, error } = useDocument(documentId);
+  const user = useAuthStore((state) => state.user);
 
   // Modal states
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+
+  // Check if user can share (Staff or Super-Admin)
+  const canShare = user?.role === 'SUPER_ADMIN' || user?.role === 'STAFF';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
   const handleDownload = async () => {
     if (!document) return;
@@ -101,6 +110,7 @@ export function DocumentDrawer({ documentId, open, onClose }: DocumentDrawerProp
                     <Download className="w-4 h-4 mr-2" />
                     Télécharger
                   </Button>
+                  {canShare && <ShareButton documentId={document.id} />}
                   <Button
                     variant="secondary"
                     size="sm"
@@ -169,6 +179,28 @@ export function DocumentDrawer({ documentId, open, onClose }: DocumentDrawerProp
 
                 {/* Versions */}
                 <VersionHistory documentId={document.id} documentName={document.name} />
+
+                {/* Share Links - visible to Staff and Super-Admin */}
+                {canShare && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3">
+                      <h3 className="font-medium text-slate-900">Liens de partage</h3>
+                      <ShareLinksManager documentId={document.id} />
+                    </div>
+                  </>
+                )}
+
+                {/* Access Logs - visible to Super-Admin only */}
+                {isSuperAdmin && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3">
+                      <h3 className="font-medium text-slate-900">Journal d'accès</h3>
+                      <AccessLogs documentId={document.id} />
+                    </div>
+                  </>
+                )}
               </div>
             </>
           ) : null}

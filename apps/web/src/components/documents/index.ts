@@ -20,3 +20,6 @@ export { DocumentDrawer } from './DocumentDrawer';
 export { DocumentPreview } from './DocumentPreview';
 export { MoveDocumentModal } from './MoveDocumentModal';
 export { VersionHistory } from './VersionHistory';
+export { ShareButton } from './ShareButton';
+export { ShareLinksManager } from './ShareLinksManager';
+export { AccessLogs } from './AccessLogs';

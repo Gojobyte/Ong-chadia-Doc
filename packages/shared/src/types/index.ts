@@ -5,3 +5,5 @@ export * from './permission.types';
 export * from './document.types';
 export * from './version.types';
 export * from './search.types';
+export * from './share.types';
+export * from './access-log.types';

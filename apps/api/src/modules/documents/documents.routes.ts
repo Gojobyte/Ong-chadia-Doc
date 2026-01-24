@@ -3,10 +3,12 @@ import multer from 'multer';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { validateParams, validate } from '../../middleware/validate.middleware.js';
 import { canAccessDocument, canMoveDocument } from '../../middleware/document-access.middleware.js';
+import { isSuperAdmin, isStaffOrAbove } from '../../middleware/rbac.middleware.js';
 import { UnsupportedFileTypeError } from '../../common/errors.js';
 import * as documentsController from './documents.controller.js';
 import * as versionsController from './versions.controller.js';
 import * as searchController from './search.controller.js';
+import * as sharingController from './sharing.controller.js';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './documents.service.js';
 import { z } from 'zod';
 
@@ -27,6 +29,11 @@ const updateDocumentSchema = z.object({
   folderId: z.string().cuid('ID de dossier invalide').optional(),
 }).refine(data => data.name || data.folderId, {
   message: 'Au moins un champ doit être fourni (name ou folderId)',
+});
+
+const shareLinkIdSchema = z.object({
+  id: z.string().cuid('ID de document invalide'),
+  linkId: z.string().cuid('ID de lien invalide'),
 });
 
 // Configure multer for file upload
@@ -124,6 +131,50 @@ router.post(
   validateParams(versionIdSchema),
   canAccessDocument('WRITE'),
   versionsController.restoreVersion
+);
+
+// =====================
+// SHARING ROUTES
+// =====================
+
+// POST /api/documents/:id/share - Create a share link (Staff or Super-Admin)
+router.post(
+  '/:id/share',
+  validateParams(documentIdSchema),
+  isStaffOrAbove,
+  canAccessDocument('WRITE'),
+  sharingController.createShareLink
+);
+
+// GET /api/documents/:id/share-links - Get all share links (Staff or Super-Admin)
+router.get(
+  '/:id/share-links',
+  validateParams(documentIdSchema),
+  isStaffOrAbove,
+  canAccessDocument('READ'),
+  sharingController.getShareLinks
+);
+
+// DELETE /api/documents/:id/share/:linkId - Revoke a share link (Staff or Super-Admin)
+router.delete(
+  '/:id/share/:linkId',
+  validateParams(shareLinkIdSchema),
+  isStaffOrAbove,
+  canAccessDocument('WRITE'),
+  sharingController.revokeShareLink
+);
+
+// =====================
+// ACCESS LOGS ROUTES
+// =====================
+
+// GET /api/documents/:id/access-logs - Get access logs (Super-Admin only)
+router.get(
+  '/:id/access-logs',
+  validateParams(documentIdSchema),
+  isSuperAdmin,
+  canAccessDocument('READ'),
+  sharingController.getAccessLogs
 );
 
 export default router;
