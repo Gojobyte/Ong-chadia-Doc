@@ -172,7 +172,7 @@ export function MemberItem({ member, isLastPM, isUpdating, onRoleChange, onRemov
                 Annuler
               </Button>
               <Button
-                variant="destructive"
+                variant="danger"
                 onClick={handleConfirmRemove}
               >
                 Retirer

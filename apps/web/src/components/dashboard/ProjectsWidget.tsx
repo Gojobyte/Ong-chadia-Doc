@@ -19,13 +19,6 @@ interface ProjectsWidgetProps {
   canCreate?: boolean;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: 'Brouillon',
-  PREPARATION: 'Préparation',
-  IN_PROGRESS: 'En cours',
-  COMPLETED: 'Terminé',
-};
-
 function getDeadlineInfo(endDate: string | null): {
   daysRemaining: number | null;
   status: 'critical' | 'warning' | 'normal' | null;

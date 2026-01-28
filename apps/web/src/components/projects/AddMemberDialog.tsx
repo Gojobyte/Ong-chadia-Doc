@@ -24,6 +24,7 @@ const systemRoleLabels: Record<Role, string> = {
   [Role.SUPER_ADMIN]: 'Super Admin',
   [Role.STAFF]: 'Staff',
   [Role.CONTRIBUTOR]: 'Contributeur',
+  [Role.GUEST]: 'Invité',
 };
 
 function getInitials(firstName?: string, lastName?: string): string {

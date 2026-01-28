@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, FileText, X, Check, Loader2, File, Image, FileSpreadsheet } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDocumentSearch } from '@/hooks/useDocuments';
 import type { DocumentResponse } from '@ong-chadia/shared';

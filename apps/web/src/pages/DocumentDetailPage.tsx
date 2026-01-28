@@ -182,7 +182,7 @@ export default function DocumentDetailPage() {
                     {document.name}
                   </h1>
                   <div className="flex items-center gap-3 mt-2 flex-wrap">
-                    <Badge variant="secondary">
+                    <Badge variant="neutral">
                       {getFileTypeLabel(document.mimeType)}
                     </Badge>
                     <span className="text-sm text-slate-500">
@@ -201,7 +201,7 @@ export default function DocumentDetailPage() {
                   <Eye className="w-4 h-4 mr-2" />
                   Prévisualiser
                 </Button>
-                <ShareButton documentId={document.id} documentName={document.name} />
+                <ShareButton documentId={document.id} />
                 <Button size="sm" onClick={handleDownload}>
                   <Download className="w-4 h-4 mr-2" />
                   Télécharger

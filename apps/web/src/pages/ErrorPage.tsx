@@ -26,7 +26,7 @@ export default function ErrorPage({ error }: ErrorPageProps) {
         <p className="text-gray-500 mt-2 mb-4 max-w-md mx-auto">
           Nous nous excusons pour ce désagrément. Veuillez réessayer.
         </p>
-        {error && process.env.NODE_ENV === 'development' && (
+        {error && import.meta.env.DEV && (
           <pre className="text-left text-xs text-red-600 bg-red-50 p-4 rounded-lg mb-8 max-w-md mx-auto overflow-auto">
             {error.message}
           </pre>

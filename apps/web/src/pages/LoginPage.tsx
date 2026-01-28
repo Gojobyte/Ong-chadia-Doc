@@ -63,7 +63,7 @@ export default function LoginPage() {
 
           {/* Features */}
           <div className="mt-10 grid grid-cols-2 gap-4">
-            {['Sécurité avancée', 'Collaboration', 'Recherche IA', 'Accès mobile'].map((feature, i) => (
+            {['Sécurité avancée', 'Collaboration', 'Recherche IA', 'Accès mobile'].map((feature) => (
               <div key={feature} className="flex items-center gap-2 text-slate-400">
                 <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400" />
                 <span className="text-sm">{feature}</span>

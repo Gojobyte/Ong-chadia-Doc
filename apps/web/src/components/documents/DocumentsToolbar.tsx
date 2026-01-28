@@ -1,4 +1,4 @@
-import { Search, LayoutGrid, List, ArrowUpDown, X, SlidersHorizontal } from 'lucide-react';
+import { Search, LayoutGrid, List, X, SlidersHorizontal } from 'lucide-react';
 
 type SortField = 'name' | 'createdAt' | 'size';
 type SortOrder = 'asc' | 'desc';
