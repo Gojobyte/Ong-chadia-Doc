@@ -3,6 +3,12 @@ import { documentsService, type UploadProgressCallback } from '@/services/docume
 import { toast } from '@/hooks/useToast';
 import type { DocumentListQueryParams, UpdateDocumentDto } from '@ong-chadia/shared';
 
+// Cache durations optimized for document data
+const DOCUMENT_LIST_STALE_TIME = 1000 * 60 * 2; // 2 minutes - lists change more often
+const DOCUMENT_DETAIL_STALE_TIME = 1000 * 60 * 5; // 5 minutes - details change less often
+const SEARCH_STALE_TIME = 1000 * 30; // 30 seconds - search results should be fresh
+const GC_TIME = 1000 * 60 * 15; // 15 minutes garbage collection
+
 /**
  * Get documents by folder
  */
@@ -14,6 +20,8 @@ export function useDocumentsByFolder(
     queryKey: ['documents', folderId, params],
     queryFn: () => documentsService.getByFolder(folderId!, params),
     enabled: !!folderId,
+    staleTime: DOCUMENT_LIST_STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
@@ -34,6 +42,23 @@ export function useDocumentSearch(params: {
     queryKey: ['documents', 'search', params],
     queryFn: () => documentsService.search(params),
     enabled: !!(params.q || params.type || params.folderId),
+    staleTime: SEARCH_STALE_TIME,
+    gcTime: GC_TIME,
+  });
+}
+
+/**
+ * Get all documents (for document picker)
+ */
+export function useAllDocuments(params: {
+  q?: string;
+  limit?: number;
+} = {}) {
+  return useQuery({
+    queryKey: ['documents', 'all', params],
+    queryFn: () => documentsService.search({ ...params, q: params.q || '' }),
+    staleTime: DOCUMENT_LIST_STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
@@ -45,6 +70,8 @@ export function useDocument(id: string | null) {
     queryKey: ['documents', id],
     queryFn: () => documentsService.getById(id!),
     enabled: !!id,
+    staleTime: DOCUMENT_DETAIL_STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 
@@ -144,7 +171,8 @@ export function useDocumentDownloadUrl(id: string | null) {
     queryKey: ['documents', id, 'download'],
     queryFn: () => documentsService.getDownloadUrl(id!),
     enabled: !!id,
-    staleTime: 1000 * 60 * 5, // URLs are valid for ~15 min, refetch after 5
+    staleTime: 1000 * 60 * 45, // URLs valid for 1 hour, refresh after 45 min
+    gcTime: 1000 * 60 * 50, // Keep in cache until near expiry
   });
 }
 
@@ -160,6 +188,8 @@ export function useDocumentVersions(documentId: string | null) {
     queryKey: ['documents', documentId, 'versions'],
     queryFn: () => documentsService.getVersions(documentId!),
     enabled: !!documentId,
+    staleTime: DOCUMENT_DETAIL_STALE_TIME,
+    gcTime: GC_TIME,
   });
 }
 

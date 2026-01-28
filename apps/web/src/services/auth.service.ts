@@ -14,6 +14,7 @@ export interface LoginResponse {
 
 export interface RefreshResponse {
   accessToken: string;
+  user?: User; // Included in optimized refresh to avoid /me call
 }
 
 export interface MeResponse {

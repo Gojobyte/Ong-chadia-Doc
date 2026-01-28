@@ -42,16 +42,24 @@ export const authService = {
     }
 
     const accessToken = generateAccessToken(user.id);
-    const refreshToken = generateRefreshToken(user.id);
 
-    // Store refresh token hash
-    const tokenHash = await hashPassword(refreshToken);
-    await prisma.refreshToken.create({
+    // Create refresh token record first to get its ID
+    const refreshTokenRecord = await prisma.refreshToken.create({
       data: {
-        tokenHash,
+        tokenHash: '', // Will be updated below
         userId: user.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       },
+    });
+
+    // Generate refresh token with the record ID for O(1) lookup
+    const refreshToken = generateRefreshToken(user.id, refreshTokenRecord.id);
+
+    // Store the token hash
+    const tokenHash = await hashPassword(refreshToken);
+    await prisma.refreshToken.update({
+      where: { id: refreshTokenRecord.id },
+      data: { tokenHash },
     });
 
     return {
@@ -79,33 +87,69 @@ export const authService = {
       throw new UnauthorizedError('Invalid token type');
     }
 
-    // Find all non-revoked refresh tokens for the user
-    const storedTokens = await prisma.refreshToken.findMany({
-      where: {
-        userId: payload.userId,
-        revokedAt: null,
-        expiresAt: { gt: new Date() },
-      },
-    });
+    // Use token ID from JWT payload for O(1) lookup instead of O(n) bcrypt comparisons
+    // The tokenId is embedded in the refresh token JWT, so we can directly find the token
+    const tokenId = payload.tokenId;
 
-    // Check if any token hash matches
-    let validToken = null;
-    for (const token of storedTokens) {
-      const matches = await comparePassword(refreshToken, token.tokenHash);
-      if (matches) {
-        validToken = token;
-        break;
+    if (tokenId) {
+      // Fast path: direct lookup by token ID
+      const storedToken = await prisma.refreshToken.findFirst({
+        where: {
+          id: tokenId,
+          userId: payload.userId,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!storedToken) {
+        throw new UnauthorizedError('Refresh token not found or revoked');
       }
-    }
+    } else {
+      // Legacy path: fallback for tokens without tokenId (will be slow)
+      const storedTokens = await prisma.refreshToken.findMany({
+        where: {
+          userId: payload.userId,
+          revokedAt: null,
+          expiresAt: { gt: new Date() },
+        },
+      });
 
-    if (!validToken) {
-      throw new UnauthorizedError('Refresh token not found or revoked');
+      let validToken = null;
+      for (const token of storedTokens) {
+        const matches = await comparePassword(refreshToken, token.tokenHash);
+        if (matches) {
+          validToken = token;
+          break;
+        }
+      }
+
+      if (!validToken) {
+        throw new UnauthorizedError('Refresh token not found or revoked');
+      }
     }
 
     // Generate new access token
     const accessToken = generateAccessToken(payload.userId);
 
-    return { accessToken };
+    // Also fetch user data to avoid the subsequent /me call
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        isActive: true,
+      },
+    });
+
+    if (!user || !user.isActive) {
+      throw new UnauthorizedError('User not found or inactive');
+    }
+
+    return { accessToken, user };
   },
 
   async logout(userId: string, refreshToken: string) {

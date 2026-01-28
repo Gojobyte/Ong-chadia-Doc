@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Loader2, Link2, Copy, Check } from 'lucide-react';
+import { Trash2, Loader2, Link2, Copy, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -19,7 +19,7 @@ interface ShareLinksManagerProps {
 }
 
 export function ShareLinksManager({ documentId }: ShareLinksManagerProps) {
-  const { data: shareLinks, isLoading } = useShareLinks(documentId);
+  const { data: shareLinks, isLoading, error } = useShareLinks(documentId);
   const revokeLink = useRevokeShareLink();
 
   const [confirmRevoke, setConfirmRevoke] = useState<string | null>(null);
@@ -43,6 +43,15 @@ export function ShareLinksManager({ documentId }: ShareLinksManagerProps) {
     return (
       <div className="flex items-center justify-center py-4">
         <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 py-4 text-red-500">
+        <AlertCircle className="w-4 h-4" />
+        <p className="text-sm">Erreur lors du chargement des liens</p>
       </div>
     );
   }

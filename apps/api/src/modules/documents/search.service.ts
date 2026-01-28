@@ -10,6 +10,12 @@ interface SearchParams {
   recursive?: boolean;
   from?: string;
   to?: string;
+  sizeMin?: number;
+  sizeMax?: number;
+  tags?: string[];
+  uploadedBy?: string;
+  sort?: 'relevance' | 'createdAt' | 'name' | 'size';
+  order?: 'asc' | 'desc';
   page?: number;
   limit?: number;
 }
@@ -22,8 +28,18 @@ interface DocumentSearchResult {
   folderId: string;
   folderName: string;
   uploadedById: string;
+  uploadedBy?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+  };
   createdAt: string;
   url?: string;
+  tags: Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>;
 }
 
 interface SearchResponse {
@@ -65,6 +81,7 @@ const LOCAL_MIME_TYPE_MAP: Record<string, string[]> = {
 
 /**
  * Get all folder IDs accessible by a user based on their role
+ * Uses recursive CTE for O(1) query instead of N+1
  */
 async function getAccessibleFolderIds(userRole: Role): Promise<string[]> {
   // Super admins have access to all folders
@@ -81,35 +98,49 @@ async function getAccessibleFolderIds(userRole: Role): Promise<string[]> {
 
   const folderIds = permissionFolders.map((p) => p.folderId);
 
-  // Include parent folders (through inheritance)
-  const allAccessibleIds = new Set<string>(folderIds);
-
-  // For each folder with explicit permission, add all descendant folders
-  for (const folderId of folderIds) {
-    const descendants = await getDescendantFolderIds(folderId);
-    descendants.forEach((id) => allAccessibleIds.add(id));
+  if (folderIds.length === 0) {
+    return [];
   }
 
-  return Array.from(allAccessibleIds);
+  // Use recursive CTE to get all descendants in a single query
+  const allAccessibleFolders = await prisma.$queryRaw<Array<{ id: string }>>`
+    WITH RECURSIVE folder_tree AS (
+      -- Base case: folders with explicit permissions
+      SELECT id, parent_id FROM folders WHERE id = ANY(${folderIds}::text[])
+
+      UNION
+
+      -- Recursive case: get all descendants
+      SELECT f.id, f.parent_id
+      FROM folders f
+      INNER JOIN folder_tree ft ON f.parent_id = ft.id
+    )
+    SELECT DISTINCT id FROM folder_tree
+  `;
+
+  return allAccessibleFolders.map((f) => f.id);
 }
 
 /**
- * Get all descendant folder IDs recursively
+ * Get all descendant folder IDs using recursive CTE (single query)
  */
 async function getDescendantFolderIds(folderId: string): Promise<string[]> {
-  const result: string[] = [folderId];
+  const descendants = await prisma.$queryRaw<Array<{ id: string }>>`
+    WITH RECURSIVE folder_tree AS (
+      -- Base case: start with the target folder
+      SELECT id FROM folders WHERE id = ${folderId}
 
-  const children = await prisma.folder.findMany({
-    where: { parentId: folderId },
-    select: { id: true },
-  });
+      UNION ALL
 
-  for (const child of children) {
-    const descendants = await getDescendantFolderIds(child.id);
-    result.push(...descendants);
-  }
+      -- Recursive case: get all children
+      SELECT f.id
+      FROM folders f
+      INNER JOIN folder_tree ft ON f.parent_id = ft.id
+    )
+    SELECT id FROM folder_tree
+  `;
 
-  return result;
+  return descendants.map((d) => d.id);
 }
 
 /**
@@ -126,6 +157,12 @@ export async function searchDocuments(
     recursive = false,
     from,
     to,
+    sizeMin,
+    sizeMax,
+    tags,
+    uploadedBy,
+    sort = 'createdAt',
+    order = 'desc',
     page = 1,
     limit = 50,
   } = params;
@@ -191,34 +228,86 @@ export async function searchDocuments(
     }
   }
 
+  // Filter by size range
+  if (sizeMin !== undefined || sizeMax !== undefined) {
+    where.size = {};
+    if (sizeMin !== undefined) {
+      where.size.gte = sizeMin;
+    }
+    if (sizeMax !== undefined) {
+      where.size.lte = sizeMax;
+    }
+  }
+
+  // Filter by tags
+  if (tags && tags.length > 0) {
+    where.tags = {
+      some: {
+        tagId: { in: tags },
+      },
+    };
+  }
+
+  // Filter by uploader
+  if (uploadedBy) {
+    where.uploadedById = uploadedBy;
+  }
+
+  // Build orderBy
+  const orderBy: Prisma.DocumentOrderByWithRelationInput = {};
+  if (sort === 'name') {
+    orderBy.name = order;
+  } else if (sort === 'size') {
+    orderBy.size = order;
+  } else {
+    orderBy.createdAt = order;
+  }
+
   // Execute paginated query
   const [documents, total] = await Promise.all([
     prisma.document.findMany({
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       include: {
         folder: { select: { name: true } },
+        uploadedBy: { select: { id: true, firstName: true, lastName: true } },
+        tags: {
+          include: {
+            tag: { select: { id: true, name: true, color: true } },
+          },
+        },
+        currentVersion: true, // Include current version for URL
       },
     }),
     prisma.document.count({ where }),
   ]);
 
-  // Get signed URLs for all documents
+  // Get signed URLs for all documents (using current version if available)
   const documentsWithUrls = await Promise.all(
     documents.map(async (doc) => {
-      const url = await storageService.getSignedUrl(doc.storagePath);
+      let url: string | undefined;
+      try {
+        // Use current version's storage path if available
+        const storagePath = doc.currentVersion?.storagePath ?? doc.storagePath;
+        url = await storageService.getSignedUrl(storagePath);
+      } catch {
+        // If storage service fails, continue without URL
+        url = undefined;
+      }
       return {
         id: doc.id,
         name: doc.name,
         mimeType: doc.mimeType,
         size: doc.size,
         folderId: doc.folderId,
-        folderName: doc.folder.name,
+        folderName: doc.folder?.name || 'Dossier inconnu',
         uploadedById: doc.uploadedById,
+        uploadedBy: doc.uploadedBy,
         createdAt: doc.createdAt.toISOString(),
         url,
+        tags: doc.tags.map((dt) => dt.tag),
       };
     })
   );

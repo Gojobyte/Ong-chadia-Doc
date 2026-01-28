@@ -1,12 +1,13 @@
 import { Router, type Router as RouterType } from 'express';
 import { authController } from './auth.controller.js';
 import { authMiddleware } from '../../middleware/auth.middleware.js';
+import { loginLimiter, registerLimiter } from '../../middleware/rateLimit.middleware.js';
 
 const router: RouterType = Router();
 
-// Public routes
-router.post('/register', authController.register);
-router.post('/login', authController.login);
+// Public routes with rate limiting
+router.post('/register', registerLimiter, authController.register);
+router.post('/login', loginLimiter, authController.login);
 router.post('/refresh', authController.refresh);
 
 // Protected routes

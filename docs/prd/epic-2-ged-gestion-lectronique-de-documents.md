@@ -216,3 +216,129 @@ Implémenter un système complet de gestion électronique de documents permettan
 10. Tests de sécurité : lien expiré retourne 403, token invalide retourne 404
 
 ---
+
+## Story 2.11: Enhanced Document Preview
+
+**As a** utilisateur,
+**I want** avoir une prévisualisation enrichie des documents avec un viewer plein écran,
+**so that** je puisse consulter rapidement le contenu sans télécharger.
+
+**Acceptance Criteria:**
+
+1. Bouton "Plein écran" dans le preview pour ouvrir un viewer modal
+2. Viewer PDF avec navigation pages (précédent/suivant, numéro de page)
+3. Viewer PDF avec zoom in/out et fit to width/height
+4. Viewer images avec zoom et pan (drag pour déplacer)
+5. Galerie d'images si plusieurs images dans le dossier (navigation flèches)
+6. Viewer Office (Word, Excel) via intégration Microsoft Office Online ou Google Docs Viewer
+7. Preview des fichiers texte (.txt, .md, .json) avec coloration syntaxique
+8. Raccourcis clavier : Échap pour fermer, flèches pour naviguer, +/- pour zoom
+9. Indicateur de chargement pendant le fetch du document
+10. Bouton télécharger accessible dans le viewer plein écran
+
+---
+
+## Story 2.12: Favoris & Accès Rapide
+
+**As a** utilisateur,
+**I want** marquer des documents et dossiers comme favoris et accéder rapidement aux fichiers récents,
+**so that** je puisse retrouver instantanément les documents que j'utilise fréquemment.
+
+**Acceptance Criteria:**
+
+1. Bouton étoile sur chaque document et dossier pour ajouter/retirer des favoris
+2. Section "Favoris" dans la sidebar accessible en un clic
+3. Liste des favoris triée par date d'ajout (plus récent en premier)
+4. Section "Documents récents" affichant les 20 derniers fichiers consultés/modifiés
+5. Persistance des favoris côté serveur (table UserFavorite)
+6. Indicateur visuel (étoile pleine) sur les éléments favoris dans les listes
+7. Suppression en lot des favoris (multi-sélection)
+8. Raccourci clavier (S) pour ajouter/retirer des favoris
+9. Compteur de favoris dans la sidebar
+10. Widget "Accès rapide" sur le Dashboard avec les 5 documents les plus consultés
+
+---
+
+## Story 2.13: Tags & Métadonnées Documents
+
+**As a** utilisateur,
+**I want** ajouter des tags et métadonnées personnalisées aux documents,
+**so that** je puisse catégoriser et retrouver les fichiers par contexte métier (projet, client, type).
+
+**Acceptance Criteria:**
+
+1. Système de tags libres : création à la volée lors de l'ajout
+2. Autocomplétion des tags existants lors de la saisie
+3. Affichage des tags sur les cartes et lignes de documents
+4. Filtrage par tags dans la liste des documents (multi-sélection)
+5. Nuage de tags dans la sidebar montrant les tags populaires
+6. Métadonnées personnalisées par type de document (ex: Date contrat, Montant, Bénéficiaire)
+7. Templates de métadonnées par dossier (tous les docs d'un dossier héritent)
+8. Recherche globale incluant les tags et métadonnées
+9. Gestion des tags (renommer, fusionner, supprimer) pour les admins
+10. Export des métadonnées en CSV
+
+---
+
+## Story 2.14: Opérations en Lot (Bulk Operations)
+
+**As a** utilisateur avec permission WRITE,
+**I want** effectuer des actions sur plusieurs documents à la fois,
+**so that** je puisse gérer efficacement un grand nombre de fichiers (déplacer, supprimer, télécharger).
+
+**Acceptance Criteria:**
+
+1. Sélection multiple via checkbox sur chaque document
+2. Sélection de tous les documents d'un dossier (checkbox "Tout sélectionner")
+3. Sélection par plage (Shift + clic)
+4. Barre d'actions contextuelle apparaissant lors de la sélection
+5. Actions disponibles : Déplacer, Copier, Supprimer, Télécharger (ZIP), Ajouter tags
+6. Confirmation avant suppression en lot (affiche le nombre)
+7. Barre de progression pour les opérations longues
+8. Annulation possible pendant l'opération
+9. Rapport de fin d'opération (succès, échecs)
+10. Raccourcis clavier : Ctrl+A (tout sélectionner), Delete (supprimer)
+
+---
+
+## Story 2.15: Dashboard Documents & Analytics
+
+**As a** Staff ou Super-Admin,
+**I want** avoir un tableau de bord avec des statistiques sur les documents,
+**so that** je puisse suivre l'utilisation de la GED et identifier les tendances.
+
+**Acceptance Criteria:**
+
+1. Widget "Aperçu stockage" : espace utilisé vs quota, jauge visuelle
+2. Widget "Documents récents" : 5 derniers uploads avec preview miniature
+3. Widget "Activité" : graphique d'uploads par jour (30 derniers jours)
+4. Widget "Répartition par type" : camembert (PDF, Word, Excel, Images, Autres)
+5. Widget "Top dossiers" : dossiers avec le plus de documents
+6. Widget "Utilisateurs actifs" : top contributeurs (nombre d'uploads)
+7. Filtres par période : 7j, 30j, 90j, 12 mois
+8. Export des statistiques en PDF
+9. Données temps réel (actualisation automatique toutes les 5 minutes)
+10. Accès réservé aux rôles Staff et Super-Admin
+
+---
+
+## Story 2.16: Recherche Avancée & Filtres
+
+**As a** utilisateur,
+**I want** avoir des options de recherche avancées et des filtres puissants,
+**so that** je puisse retrouver rapidement n'importe quel document même dans une grande collection.
+
+**Acceptance Criteria:**
+
+1. Barre de recherche globale accessible depuis n'importe quelle page (header)
+2. Recherche instantanée avec résultats en temps réel (debounce 300ms)
+3. Recherche dans le nom, tags, métadonnées, et contenu texte (si indexé)
+4. Panneau de filtres avancés déployable
+5. Filtres : Type de fichier, Date de création, Taille, Dossier, Tags, Uploadé par
+6. Sauvegarde des recherches fréquentes
+7. Historique des recherches récentes (5 dernières)
+8. Mise en surbrillance des termes trouvés dans les résultats
+9. Tri des résultats : Pertinence, Date, Nom, Taille
+10. Résultats groupés par dossier (optionnel)
+
+---

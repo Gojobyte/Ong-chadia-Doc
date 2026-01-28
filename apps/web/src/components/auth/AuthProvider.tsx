@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { useAuthStore } from '@/stores/auth.store';
 import { authService } from '@/services/auth.service';
 
@@ -8,8 +8,13 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const { setAuth, logout, setLoading, accessToken } = useAuthStore();
+  const initialized = useRef(false);
 
   useEffect(() => {
+    // Prevent double initialization (React StrictMode, HMR, etc.)
+    if (initialized.current) return;
+    initialized.current = true;
+
     const initAuth = async () => {
       const refreshToken = localStorage.getItem('refreshToken');
 
@@ -18,23 +23,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return;
       }
 
-      // If we have a refresh token but no access token, try to get one
-      if (!accessToken) {
-        try {
-          const refreshResponse = await authService.refreshToken(refreshToken);
-          useAuthStore.getState().setToken(refreshResponse.accessToken);
-        } catch {
-          localStorage.removeItem('refreshToken');
-          logout();
+      // Always wait for token refresh to complete before allowing API calls
+      // This prevents 401 race conditions
+      try {
+        const refreshResponse = await authService.refreshToken(refreshToken);
+
+        if (refreshResponse.user) {
+          setAuth(refreshResponse.user, refreshResponse.accessToken);
           return;
         }
-      }
 
-      // Verify the token by getting user info
-      try {
+        useAuthStore.getState().setToken(refreshResponse.accessToken);
         const { user } = await authService.getMe();
-        const token = useAuthStore.getState().accessToken;
-        setAuth(user, token || '');
+        setAuth(user, refreshResponse.accessToken);
       } catch {
         localStorage.removeItem('refreshToken');
         logout();
@@ -42,7 +43,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
 
     initAuth();
-  }, [accessToken, logout, setAuth, setLoading]);
+  }, [logout, setAuth, setLoading, accessToken]);
 
   return <>{children}</>;
 }

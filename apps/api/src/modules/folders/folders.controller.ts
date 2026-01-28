@@ -106,3 +106,20 @@ export async function deleteFolder(
     next(error);
   }
 }
+
+/**
+ * GET /api/folders/:id/path - Get full path from root to folder (single query)
+ */
+export async function getFolderPath(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const id = req.params.id as string;
+    const path = await foldersService.getFolderPath(id);
+    res.json({ data: path });
+  } catch (error) {
+    next(error);
+  }
+}

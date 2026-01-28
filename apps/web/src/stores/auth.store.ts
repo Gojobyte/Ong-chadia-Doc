@@ -23,7 +23,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       accessToken: null,
       isAuthenticated: false,
@@ -37,7 +37,15 @@ export const useAuthStore = create<AuthState>()(
       logout: () =>
         set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false }),
 
-      setLoading: (isLoading) => set({ isLoading }),
+      setLoading: (isLoading) => {
+        const state = get();
+        // If we have a cached user and are no longer loading, mark as authenticated
+        if (!isLoading && state.user && !state.isAuthenticated) {
+          set({ isLoading: false, isAuthenticated: true });
+        } else {
+          set({ isLoading });
+        }
+      },
     }),
     {
       name: 'auth-storage',

@@ -15,3 +15,6 @@ export * from './search.validators';
 
 // Share validators
 export * from './share.validators';
+
+// Project validators
+export * from './project.validators';

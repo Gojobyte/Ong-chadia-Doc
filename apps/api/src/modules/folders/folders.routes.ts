@@ -23,6 +23,9 @@ router.get('/', foldersController.getRootFolders);
 // GET /api/folders/:id - Get folder by ID with children
 router.get('/:id', validateParams(folderIdSchema), foldersController.getFolderById);
 
+// GET /api/folders/:id/path - Get full path from root to folder (optimized single query)
+router.get('/:id/path', validateParams(folderIdSchema), foldersController.getFolderPath);
+
 // GET /api/folders/:id/children - Get direct children
 router.get('/:id/children', validateParams(folderIdSchema), foldersController.getFolderChildren);
 

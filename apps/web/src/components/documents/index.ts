@@ -11,8 +11,13 @@ export { DeleteFolderModal } from './DeleteFolderModal';
 // Document components
 export { DocumentList } from './DocumentList';
 export { DocumentRow } from './DocumentRow';
+export { DocumentCard } from './DocumentCard';
+export { DocumentGrid } from './DocumentGrid';
+export { DocumentsToolbar } from './DocumentsToolbar';
+export { EmptyState } from './EmptyState';
 export { UploadButton } from './UploadButton';
 export { DropZone } from './DropZone';
+export { UploadDropzone } from './UploadDropzone';
 export { UploadProgress, type UploadItem } from './UploadProgress';
 export { RenameDocumentModal } from './RenameDocumentModal';
 export { DeleteDocumentModal } from './DeleteDocumentModal';
@@ -23,3 +28,14 @@ export { VersionHistory } from './VersionHistory';
 export { ShareButton } from './ShareButton';
 export { ShareLinksManager } from './ShareLinksManager';
 export { AccessLogs } from './AccessLogs';
+export { FavoriteButton } from './FavoriteButton';
+export { TagCloud } from './TagCloud';
+export { MetadataEditor } from './MetadataEditor';
+export { BulkActionsBar } from './BulkActionsBar';
+export { BulkDeleteModal } from './BulkDeleteModal';
+export { BulkMoveModal } from './BulkMoveModal';
+export { BulkTagsModal } from './BulkTagsModal';
+export { CommentSection } from './CommentSection';
+
+// Viewers
+export { FullScreenViewer, ImageViewer, PdfViewer, TextViewer, OfficeViewer } from './viewers';

@@ -36,40 +36,33 @@ export const foldersService = {
    * Get a single folder by ID
    */
   async getFolderById(id: string): Promise<FolderResponse> {
-    const response = await api.get<FolderResponse>(`/folders/${id}`);
-    return response.data;
+    const response = await api.get<{ data: FolderResponse }>(`/folders/${id}`);
+    return response.data.data;
   },
 
   /**
    * Get folder with its full path (for breadcrumb)
+   * Uses optimized backend endpoint with recursive CTE (single query instead of N+1)
    */
   async getFolderPath(id: string): Promise<FolderResponse[]> {
-    const path: FolderResponse[] = [];
-    let currentId: string | null = id;
-
-    while (currentId) {
-      const folder = await this.getFolderById(currentId);
-      path.unshift(folder);
-      currentId = folder.parentId;
-    }
-
-    return path;
+    const response = await api.get<{ data: FolderResponse[] }>(`/folders/${id}/path`);
+    return response.data.data;
   },
 
   /**
    * Create a new folder
    */
   async createFolder(data: CreateFolderDto): Promise<FolderResponse> {
-    const response = await api.post<FolderResponse>('/folders', data);
-    return response.data;
+    const response = await api.post<{ data: FolderResponse }>('/folders', data);
+    return response.data.data;
   },
 
   /**
    * Update a folder
    */
   async updateFolder(id: string, data: UpdateFolderDto): Promise<FolderResponse> {
-    const response = await api.patch<FolderResponse>(`/folders/${id}`, data);
-    return response.data;
+    const response = await api.patch<{ data: FolderResponse }>(`/folders/${id}`, data);
+    return response.data.data;
   },
 
   /**

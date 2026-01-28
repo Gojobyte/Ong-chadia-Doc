@@ -3,6 +3,10 @@ import { foldersService } from '@/services/folders.service';
 import { toast } from '@/hooks/useToast';
 import type { CreateFolderDto, UpdateFolderDto } from '@ong-chadia/shared';
 
+// Cache durations optimized for folder data
+const FOLDER_STALE_TIME = 1000 * 60 * 10; // 10 minutes - folders change rarely
+const FOLDER_GC_TIME = 1000 * 60 * 30; // 30 minutes garbage collection
+
 /**
  * Get root folders
  */
@@ -10,6 +14,8 @@ export function useRootFolders() {
   return useQuery({
     queryKey: ['folders', 'root'],
     queryFn: foldersService.getRootFolders,
+    staleTime: FOLDER_STALE_TIME,
+    gcTime: FOLDER_GC_TIME,
   });
 }
 
@@ -21,6 +27,8 @@ export function useFolderChildren(folderId: string | null) {
     queryKey: ['folders', folderId, 'children'],
     queryFn: () => foldersService.getFolderChildren(folderId!),
     enabled: !!folderId,
+    staleTime: FOLDER_STALE_TIME,
+    gcTime: FOLDER_GC_TIME,
   });
 }
 
@@ -32,6 +40,8 @@ export function useFolder(id: string | null) {
     queryKey: ['folders', id],
     queryFn: () => foldersService.getFolderById(id!),
     enabled: !!id,
+    staleTime: FOLDER_STALE_TIME,
+    gcTime: FOLDER_GC_TIME,
   });
 }
 
@@ -43,6 +53,8 @@ export function useFolderPath(id: string | null) {
     queryKey: ['folders', id, 'path'],
     queryFn: () => foldersService.getFolderPath(id!),
     enabled: !!id,
+    staleTime: FOLDER_STALE_TIME,
+    gcTime: FOLDER_GC_TIME,
   });
 }
 

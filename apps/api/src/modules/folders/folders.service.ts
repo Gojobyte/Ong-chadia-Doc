@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database.js';
 import { BadRequestError, ConflictError, NotFoundError } from '../../common/errors.js';
+import { cached, cacheKey, deleteCache, deleteCachePattern, CACHE_TTL } from '../../utils/cache.js';
 
 // Types for Folder operations
 export interface CreateFolderDto {
@@ -32,54 +33,60 @@ export async function getRootFolders(userId: string, page = 1, limit = 50): Prom
   data: FolderResponse[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }> {
-  const skip = (page - 1) * limit;
+  const key = `${cacheKey.folders(null)}:${page}:${limit}`;
 
-  const [folders, total] = await Promise.all([
-    prisma.folder.findMany({
-      where: { parentId: null },
-      skip,
-      take: limit,
-      orderBy: { name: 'asc' },
-      include: {
-        _count: { select: { children: true } },
+  return cached(key, async () => {
+    const skip = (page - 1) * limit;
+
+    const [folders, total] = await Promise.all([
+      prisma.folder.findMany({
+        where: { parentId: null },
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+        include: {
+          _count: { select: { children: true } },
+        },
+      }),
+      prisma.folder.count({ where: { parentId: null } }),
+    ]);
+
+    return {
+      data: folders.map(mapFolderToResponse),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-    }),
-    prisma.folder.count({ where: { parentId: null } }),
-  ]);
-
-  return {
-    data: folders.map(mapFolderToResponse),
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
+    };
+  }, CACHE_TTL.MEDIUM);
 }
 
 /**
  * Get a folder by ID with its direct children
  */
 export async function getFolderById(id: string): Promise<FolderResponse> {
-  const folder = await prisma.folder.findUnique({
-    where: { id },
-    include: {
-      children: {
-        orderBy: { name: 'asc' },
-        include: {
-          _count: { select: { children: true } },
+  return cached(cacheKey.folder(id), async () => {
+    const folder = await prisma.folder.findUnique({
+      where: { id },
+      include: {
+        children: {
+          orderBy: { name: 'asc' },
+          include: {
+            _count: { select: { children: true } },
+          },
         },
+        _count: { select: { children: true } },
       },
-      _count: { select: { children: true } },
-    },
-  });
+    });
 
-  if (!folder) {
-    throw new NotFoundError('Dossier non trouvé');
-  }
+    if (!folder) {
+      throw new NotFoundError('Dossier non trouvé');
+    }
 
-  return mapFolderToResponse(folder);
+    return mapFolderToResponse(folder);
+  }, CACHE_TTL.MEDIUM);
 }
 
 /**
@@ -89,36 +96,40 @@ export async function getFolderChildren(folderId: string, page = 1, limit = 50):
   data: FolderResponse[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }> {
-  // Verify folder exists
-  const folder = await prisma.folder.findUnique({ where: { id: folderId } });
-  if (!folder) {
-    throw new NotFoundError('Dossier parent non trouvé');
-  }
+  const key = `${cacheKey.folders(folderId)}:${page}:${limit}`;
 
-  const skip = (page - 1) * limit;
+  return cached(key, async () => {
+    // Verify folder exists
+    const folder = await prisma.folder.findUnique({ where: { id: folderId } });
+    if (!folder) {
+      throw new NotFoundError('Dossier parent non trouvé');
+    }
 
-  const [children, total] = await Promise.all([
-    prisma.folder.findMany({
-      where: { parentId: folderId },
-      skip,
-      take: limit,
-      orderBy: { name: 'asc' },
-      include: {
-        _count: { select: { children: true } },
+    const skip = (page - 1) * limit;
+
+    const [children, total] = await Promise.all([
+      prisma.folder.findMany({
+        where: { parentId: folderId },
+        skip,
+        take: limit,
+        orderBy: { name: 'asc' },
+        include: {
+          _count: { select: { children: true } },
+        },
+      }),
+      prisma.folder.count({ where: { parentId: folderId } }),
+    ]);
+
+    return {
+      data: children.map(mapFolderToResponse),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-    }),
-    prisma.folder.count({ where: { parentId: folderId } }),
-  ]);
-
-  return {
-    data: children.map(mapFolderToResponse),
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
+    };
+  }, CACHE_TTL.MEDIUM);
 }
 
 /**
@@ -156,6 +167,9 @@ export async function createFolder(data: CreateFolderDto, userId: string): Promi
     },
   });
 
+  // Invalidate folder cache
+  await invalidateFolderCache(data.parentId ?? null);
+
   return mapFolderToResponse(folder);
 }
 
@@ -167,6 +181,8 @@ export async function updateFolder(id: string, data: UpdateFolderDto): Promise<F
   if (!folder) {
     throw new NotFoundError('Dossier non trouvé');
   }
+
+  const oldParentId = folder.parentId;
 
   // If moving to a new parent, check for cycles and parent existence
   if (data.parentId !== undefined && data.parentId !== folder.parentId) {
@@ -211,6 +227,13 @@ export async function updateFolder(id: string, data: UpdateFolderDto): Promise<F
     },
   });
 
+  // Invalidate folder cache
+  await deleteCache(cacheKey.folder(id));
+  await invalidateFolderCache(oldParentId);
+  if (data.parentId !== undefined && data.parentId !== oldParentId) {
+    await invalidateFolderCache(data.parentId);
+  }
+
   return mapFolderToResponse(updatedFolder);
 }
 
@@ -237,6 +260,10 @@ export async function deleteFolder(id: string): Promise<void> {
   // Note: Document check will be added in Story 2.3
 
   await prisma.folder.delete({ where: { id } });
+
+  // Invalidate folder cache
+  await deleteCache(cacheKey.folder(id));
+  await invalidateFolderCache(folder.parentId);
 }
 
 /**
@@ -259,6 +286,125 @@ export async function checkCycleDetection(folderId: string, newParentId: string)
   }
 
   return false;
+}
+
+/**
+ * Get the full path from root to a folder using recursive CTE (single query)
+ * This replaces the N+1 query pattern in the frontend
+ */
+export async function getFolderPath(folderId: string): Promise<FolderResponse[]> {
+  const folder = await prisma.folder.findUnique({ where: { id: folderId } });
+  if (!folder) {
+    throw new NotFoundError('Dossier non trouvé');
+  }
+
+  // Use recursive CTE to get all ancestors in a single query
+  const pathFolders = await prisma.$queryRaw<Array<{
+    id: string;
+    name: string;
+    parent_id: string | null;
+    created_by_id: string;
+    created_at: Date;
+    updated_at: Date;
+    depth: number;
+  }>>`
+    WITH RECURSIVE folder_path AS (
+      -- Base case: start with the target folder
+      SELECT
+        f.id,
+        f.name,
+        f.parent_id,
+        f.created_by_id,
+        f.created_at,
+        f.updated_at,
+        0 as depth
+      FROM folders f
+      WHERE f.id = ${folderId}
+
+      UNION ALL
+
+      -- Recursive case: get parent folders
+      SELECT
+        parent.id,
+        parent.name,
+        parent.parent_id,
+        parent.created_by_id,
+        parent.created_at,
+        parent.updated_at,
+        fp.depth + 1 as depth
+      FROM folders parent
+      INNER JOIN folder_path fp ON parent.id = fp.parent_id
+    )
+    SELECT * FROM folder_path
+    ORDER BY depth DESC
+  `;
+
+  return pathFolders.map((f) => ({
+    id: f.id,
+    name: f.name,
+    parentId: f.parent_id,
+    createdById: f.created_by_id,
+    createdAt: f.created_at.toISOString(),
+    updatedAt: f.updated_at.toISOString(),
+  }));
+}
+
+/**
+ * Get all descendant folder IDs using recursive CTE (single query)
+ * Replaces the N+1 recursive function
+ */
+export async function getDescendantFolderIds(folderId: string): Promise<string[]> {
+  const descendants = await prisma.$queryRaw<Array<{ id: string }>>`
+    WITH RECURSIVE folder_tree AS (
+      -- Base case: start with the target folder
+      SELECT id FROM folders WHERE id = ${folderId}
+
+      UNION ALL
+
+      -- Recursive case: get all children
+      SELECT f.id
+      FROM folders f
+      INNER JOIN folder_tree ft ON f.parent_id = ft.id
+    )
+    SELECT id FROM folder_tree
+  `;
+
+  return descendants.map((d) => d.id);
+}
+
+/**
+ * Check cycle detection using recursive CTE (single query)
+ * Replaces the N+1 while loop
+ */
+export async function checkCycleDetectionOptimized(folderId: string, newParentId: string): Promise<boolean> {
+  const ancestors = await prisma.$queryRaw<Array<{ id: string }>>`
+    WITH RECURSIVE ancestor_path AS (
+      -- Base case: start with the new parent
+      SELECT id, parent_id FROM folders WHERE id = ${newParentId}
+
+      UNION ALL
+
+      -- Recursive case: get ancestors
+      SELECT f.id, f.parent_id
+      FROM folders f
+      INNER JOIN ancestor_path ap ON f.id = ap.parent_id
+    )
+    SELECT id FROM ancestor_path WHERE id = ${folderId}
+  `;
+
+  return ancestors.length > 0;
+}
+
+/**
+ * Invalidate folder cache for a parent folder and its children list
+ */
+async function invalidateFolderCache(parentId: string | null): Promise<void> {
+  // Delete the parent folder cache
+  if (parentId) {
+    await deleteCache(cacheKey.folder(parentId));
+  }
+  // Delete the children list cache (using pattern to match all pagination variants)
+  await deleteCachePattern(`${cacheKey.folders(parentId)}:*`);
 }
 
 /**

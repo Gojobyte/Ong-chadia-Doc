@@ -16,7 +16,8 @@ export function canAccessFolder(requiredPermission: PermissionType) {
         throw new UnauthorizedError('Authentication required');
       }
 
-      const folderId = req.params.id || req.params.folderId;
+      const folderIdParam = req.params.id || req.params.folderId;
+      const folderId = Array.isArray(folderIdParam) ? folderIdParam[0] : folderIdParam;
       if (!folderId) {
         throw new NotFoundError('ID de dossier manquant');
       }

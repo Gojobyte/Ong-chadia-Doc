@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { FolderPlus, Home, Loader2 } from 'lucide-react';
+import { Plus, Home, Loader2, HardDrive } from 'lucide-react';
 import { useRootFolders } from '@/hooks/useFolders';
+import { useStorageAnalytics } from '@/hooks/useAnalytics';
 import { FolderTreeItem } from './FolderTreeItem';
 import { CreateFolderModal } from './CreateFolderModal';
 import { RenameFolderModal } from './RenameFolderModal';
 import { MoveFolderModal } from './MoveFolderModal';
 import { DeleteFolderModal } from './DeleteFolderModal';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatFileSize } from '@/lib/utils';
 import type { FolderResponse } from '@ong-chadia/shared';
 
 interface FolderTreeProps {
@@ -17,6 +17,12 @@ interface FolderTreeProps {
 
 export function FolderTree({ selectedId, onSelect }: FolderTreeProps) {
   const { data: rootFolders, isLoading, error } = useRootFolders();
+  const { data: storage } = useStorageAnalytics();
+
+  // Storage data from API
+  const storageUsed = storage?.used || 0;
+  const storageQuota = storage?.quota || 5 * 1024 * 1024 * 1024; // Default 5GB
+  const storagePercent = storage?.percentage || 0;
 
   // Modal states
   const [createModal, setCreateModal] = useState<{ open: boolean; parentId: string | null }>({
@@ -54,7 +60,7 @@ export function FolderTree({ selectedId, onSelect }: FolderTreeProps) {
 
   if (isLoading) {
     return (
-      <div className="p-4 flex items-center justify-center">
+      <div className="h-full flex items-center justify-center bg-white">
         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       </div>
     );
@@ -62,40 +68,44 @@ export function FolderTree({ selectedId, onSelect }: FolderTreeProps) {
 
   if (error) {
     return (
-      <div className="p-4 text-sm text-red-600">
-        Erreur lors du chargement des dossiers
+      <div className="h-full flex flex-col bg-white">
+        <div className="p-4 border-b border-slate-100">
+          <h2 className="font-semibold text-slate-900">Dossiers</h2>
+        </div>
+        <div className="p-4 text-sm text-red-600">
+          Erreur lors du chargement des dossiers
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="h-full flex flex-col bg-white">
       {/* Header */}
-      <div className="p-3 border-b flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">Dossiers</h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 w-7 p-0"
+      <div className="p-4 flex items-center justify-between border-b border-slate-100">
+        <h2 className="font-semibold text-slate-900">Dossiers</h2>
+        <button
           onClick={() => setCreateModal({ open: true, parentId: null })}
+          className="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"
           title="Nouveau dossier"
         >
-          <FolderPlus className="w-4 h-4" />
-        </Button>
+          <Plus className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Folder tree */}
-      <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-y-auto py-4 px-3 custom-scrollbar">
         {/* Root / All documents option */}
         <div
           className={cn(
-            'flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-colors mb-1',
-            'hover:bg-slate-100',
-            selectedId === null && 'bg-primary-50 text-primary-700 hover:bg-primary-100'
+            'flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors duration-150 mb-1',
+            selectedId === null
+              ? 'bg-primary-50 text-primary-700'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
           )}
           onClick={() => onSelect(null)}
         >
-          <Home className="w-4 h-4 text-slate-500" />
+          <Home className={cn('w-4 h-4', selectedId === null ? 'text-primary-600' : 'text-slate-400')} />
           <span className="text-sm font-medium">Tous les documents</span>
         </div>
 
@@ -115,10 +125,32 @@ export function FolderTree({ selectedId, onSelect }: FolderTreeProps) {
             />
           ))
         ) : (
-          <div className="px-2 py-4 text-sm text-slate-500 text-center">
+          <div className="px-3 py-4 text-sm text-slate-500 text-center">
             Aucun dossier
           </div>
         )}
+      </div>
+
+      {/* Storage indicator */}
+      <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+        <div className="flex items-center gap-2 mb-2">
+          <HardDrive className="w-4 h-4 text-slate-400" />
+          <span className="text-xs font-medium text-slate-600">Stockage</span>
+        </div>
+        <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+          <span>{formatFileSize(storageUsed)} utilisés</span>
+          <span className="font-medium text-slate-700">{storagePercent.toFixed(1)}%</span>
+        </div>
+        <div className="w-full bg-slate-200 rounded-full h-2 mb-2">
+          <div
+            className={cn(
+              'h-2 rounded-full transition-all duration-500',
+              storagePercent > 90 ? 'bg-red-500' : storagePercent > 70 ? 'bg-amber-500' : 'bg-primary-600'
+            )}
+            style={{ width: `${storagePercent}%` }}
+          />
+        </div>
+        <p className="text-[10px] text-slate-400">{formatFileSize(storageQuota - storageUsed)} disponibles sur {formatFileSize(storageQuota)}</p>
       </div>
 
       {/* Modals */}

@@ -17,22 +17,27 @@ export function formatFileSize(bytes: number): string {
 /**
  * Format date in French locale
  */
-export function formatDate(date: string | Date): string {
+export function formatDate(date: string | Date | null | undefined): string {
+  if (!date) return '-';
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return '-';
   return new Intl.DateTimeFormat('fr-FR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(date));
+  }).format(d);
 }
 
 /**
  * Format relative date (e.g., "il y a 2 jours")
  */
-export function formatRelativeDate(date: string | Date): string {
+export function formatRelativeDate(date: string | Date | null | undefined): string {
+  if (!date) return '-';
   const now = new Date();
   const d = new Date(date);
+  if (isNaN(d.getTime())) return '-';
   const diff = now.getTime() - d.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 

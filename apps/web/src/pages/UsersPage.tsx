@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { UserPlus, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { UserPlus } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { UserTable } from '@/components/users/UserTable'
 import { UserFormDialog } from '@/components/users/UserFormDialog'
@@ -58,99 +58,116 @@ export default function UsersPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <main className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+          {/* Header */}
+          <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center">
+                <Shield className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  Gestion des utilisateurs
+                </h1>
+                <p className="text-sm text-gray-500">
+                  Créez et gérez les comptes utilisateurs de la plateforme.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setDialogOpen(true)}
+              leftIcon={<UserPlus className="w-4 h-4" />}
+              className="btn-simple"
+            >
+              Ajouter utilisateur
+            </Button>
+          </header>
+
+          {/* Filter */}
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              Gestion des utilisateurs
-            </h1>
-            <p className="text-slate-600">
-              Créez et gérez les comptes utilisateurs de la plateforme.
-            </p>
+            <Card className="card-simple p-5">
+              <UsersFilter
+                role={role}
+                onRoleChange={(newRole) => {
+                  if (newRole) {
+                    searchParams.set('role', newRole)
+                  } else {
+                    searchParams.delete('role')
+                  }
+                  searchParams.delete('page')
+                  setSearchParams(searchParams)
+                }}
+              />
+            </Card>
           </div>
-          <Button onClick={() => setDialogOpen(true)} leftIcon={<UserPlus className="w-4 h-4" />}>
-            Ajouter utilisateur
-          </Button>
-        </div>
 
-        {/* Filter */}
-        <Card className="p-4">
-          <UsersFilter
-            role={role}
-            onRoleChange={(newRole) => {
-              if (newRole) {
-                searchParams.set('role', newRole)
-              } else {
-                searchParams.delete('role')
-              }
-              searchParams.delete('page')
-              setSearchParams(searchParams)
-            }}
+          {/* Table */}
+          <div>
+            <UserTable
+              users={data?.data || []}
+              isLoading={isLoading}
+              onEdit={(user) => setEditingUser(user)}
+              onDelete={(user) => setDeletingUser(user)}
+            />
+          </div>
+
+          {/* Pagination */}
+          {data && data.pagination.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => handlePageChange(page - 1)}
+                className="btn-simple-outline"
+              >
+                Précédent
+              </Button>
+              <span className="text-sm text-gray-600 px-4 py-2 bg-white rounded-lg border border-gray-200">
+                Page {page} sur {data.pagination.totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === data.pagination.totalPages}
+                onClick={() => handlePageChange(page + 1)}
+                className="btn-simple-outline"
+              >
+                Suivant
+              </Button>
+            </div>
+          )}
+
+          {/* Create Dialog */}
+          <UserFormDialog
+            open={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            onSubmit={handleCreate}
+            isLoading={createMutation.isPending}
           />
-        </Card>
 
-        {/* Table */}
-        <UserTable
-          users={data?.data || []}
-          isLoading={isLoading}
-          onEdit={(user) => setEditingUser(user)}
-          onDelete={(user) => setDeletingUser(user)}
-        />
+          {/* Edit Dialog */}
+          <UserFormDialog
+            open={!!editingUser}
+            onClose={() => setEditingUser(null)}
+            onSubmit={handleUpdate}
+            user={editingUser}
+            isLoading={updateMutation.isPending}
+          />
 
-        {/* Pagination */}
-        {data && data.pagination.totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => handlePageChange(page - 1)}
-            >
-              Précédent
-            </Button>
-            <span className="text-sm text-slate-600">
-              Page {page} sur {data.pagination.totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === data.pagination.totalPages}
-              onClick={() => handlePageChange(page + 1)}
-            >
-              Suivant
-            </Button>
-          </div>
-        )}
-
-        {/* Create Dialog */}
-        <UserFormDialog
-          open={dialogOpen}
-          onClose={() => setDialogOpen(false)}
-          onSubmit={handleCreate}
-          isLoading={createMutation.isPending}
-        />
-
-        {/* Edit Dialog */}
-        <UserFormDialog
-          open={!!editingUser}
-          onClose={() => setEditingUser(null)}
-          onSubmit={handleUpdate}
-          user={editingUser}
-          isLoading={updateMutation.isPending}
-        />
-
-        {/* Delete Confirmation */}
-        <ConfirmDialog
-          open={!!deletingUser}
-          onClose={() => setDeletingUser(null)}
-          onConfirm={handleDelete}
-          title="Désactiver l'utilisateur"
-          message={`Êtes-vous sûr de vouloir désactiver ${deletingUser?.firstName} ${deletingUser?.lastName} ?`}
-          isLoading={deleteMutation.isPending}
-          confirmText="Désactiver"
-        />
-      </div>
+          {/* Delete Confirmation */}
+          <ConfirmDialog
+            open={!!deletingUser}
+            onClose={() => setDeletingUser(null)}
+            onConfirm={handleDelete}
+            title="Désactiver l'utilisateur"
+            message={`Êtes-vous sûr de vouloir désactiver ${deletingUser?.firstName} ${deletingUser?.lastName} ?`}
+            isLoading={deleteMutation.isPending}
+            confirmText="Désactiver"
+          />
+        </div>
+      </main>
     </DashboardLayout>
   )
 }

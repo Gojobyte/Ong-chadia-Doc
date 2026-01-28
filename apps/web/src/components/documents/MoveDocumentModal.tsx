@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Folder, Home, ChevronRight } from 'lucide-react';
+import { Loader2, Folder, ChevronRight } from 'lucide-react';
 import {
   Dialog,
   DialogContent,

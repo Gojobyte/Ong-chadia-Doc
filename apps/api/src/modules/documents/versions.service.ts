@@ -7,6 +7,8 @@ interface DocumentVersionResponse {
   id: string;
   documentId: string;
   versionNumber: number;
+  name?: string | null;
+  mimeType?: string | null;
   size: number;
   uploadedById: string;
   createdAt: string;
@@ -58,23 +60,27 @@ export async function uploadNewVersion(
   // Upload file to storage
   await storageService.uploadFile(file.buffer, storagePath, file.mimetype);
 
-  // Create version record
+  // Create version record with name and mimeType
   const version = await prisma.documentVersion.create({
     data: {
       documentId,
       versionNumber,
+      name: file.originalname,
+      mimeType: file.mimetype,
       storagePath,
       size: file.size,
       uploadedById: userId,
     },
   });
 
-  // Update document with new current version
+  // Update document with new current version (name, size, and version reference)
   await prisma.document.update({
     where: { id: documentId },
     data: {
       currentVersionId: version.id,
+      name: file.originalname, // Update name to match current version
       size: file.size,
+      mimeType: file.mimetype, // Update mime type in case it changed
     },
   });
 
@@ -152,11 +158,13 @@ export async function restoreVersion(
     throw new NotFoundError('Version non trouvée');
   }
 
-  // Update document with restored version
+  // Update document with restored version (name, mimeType, size)
   await prisma.document.update({
     where: { id: documentId },
     data: {
       currentVersionId: versionId,
+      ...(version.name && { name: version.name }),
+      ...(version.mimeType && { mimeType: version.mimeType }),
       size: version.size,
     },
   });
@@ -185,6 +193,8 @@ function mapVersionToResponse(
     id: string;
     documentId: string;
     versionNumber: number;
+    name?: string | null;
+    mimeType?: string | null;
     size: number;
     uploadedById: string;
     createdAt: Date;
@@ -196,6 +206,8 @@ function mapVersionToResponse(
     id: version.id,
     documentId: version.documentId,
     versionNumber: version.versionNumber,
+    name: version.name,
+    mimeType: version.mimeType,
     size: version.size,
     uploadedById: version.uploadedById,
     createdAt: version.createdAt.toISOString(),

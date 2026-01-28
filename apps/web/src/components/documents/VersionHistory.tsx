@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Download, History, Upload, Loader2, RotateCcw } from 'lucide-react';
+import { Download, History, Upload, Loader2, RotateCcw, AlertCircle, Eye } from 'lucide-react';
 import { useDocumentVersions, useUploadVersion, useRestoreVersion } from '@/hooks/useDocuments';
 import { documentsService } from '@/services/documents.service';
 import { Button } from '@/components/ui/button';
@@ -10,15 +10,17 @@ import { toast } from '@/hooks/useToast';
 
 interface VersionHistoryProps {
   documentId: string;
-  documentName: string;
+  documentName?: string;
+  onPreviewVersion?: (versionUrl: string, versionNumber: number) => void;
 }
 
-export function VersionHistory({ documentId, documentName }: VersionHistoryProps) {
-  const { data, isLoading } = useDocumentVersions(documentId);
+export function VersionHistory({ documentId, onPreviewVersion }: VersionHistoryProps) {
+  const { data, isLoading, error } = useDocumentVersions(documentId);
   const uploadVersion = useUploadVersion();
   const restoreVersion = useRestoreVersion();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [previewingVersion, setPreviewingVersion] = useState<string | null>(null);
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -78,6 +80,24 @@ export function VersionHistory({ documentId, documentName }: VersionHistoryProps
     await restoreVersion.mutateAsync({ documentId, versionId });
   };
 
+  const handlePreviewVersion = async (versionId: string, versionNumber: number) => {
+    if (!onPreviewVersion) return;
+
+    setPreviewingVersion(versionId);
+    try {
+      const { url } = await documentsService.getVersionDownloadUrl(documentId, versionId);
+      onPreviewVersion(url, versionNumber);
+    } catch {
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de charger la prévisualisation',
+        variant: 'destructive',
+      });
+    } finally {
+      setPreviewingVersion(null);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="py-4 flex items-center justify-center">
@@ -86,7 +106,21 @@ export function VersionHistory({ documentId, documentName }: VersionHistoryProps
     );
   }
 
-  const versions = data?.versions || [];
+  if (error) {
+    return (
+      <div className="py-4 flex flex-col items-center justify-center text-red-500">
+        <AlertCircle className="w-8 h-8 text-red-300 mb-2" />
+        <p className="text-sm">Erreur lors du chargement des versions</p>
+      </div>
+    );
+  }
+
+  // Sort versions: current version first, then by version number descending
+  const versions = [...(data?.versions || [])].sort((a, b) => {
+    if (a.isCurrent) return -1;
+    if (b.isCurrent) return 1;
+    return b.versionNumber - a.versionNumber;
+  });
 
   return (
     <div className="space-y-3">
@@ -133,24 +167,52 @@ export function VersionHistory({ documentId, documentName }: VersionHistoryProps
           {versions.map((version) => (
             <div
               key={version.id}
-              className="flex items-center justify-between p-3 border rounded-lg bg-white"
+              className={`flex items-center justify-between p-3 border rounded-lg ${
+                version.isCurrent
+                  ? 'bg-primary-50 border-primary-200 ring-1 ring-primary-100'
+                  : 'bg-white'
+              }`}
             >
-              <div className="flex items-center gap-3">
-                <span className="font-mono text-sm font-medium text-slate-700">
-                  v{version.versionNumber}
-                </span>
-                {version.isCurrent && (
-                  <Badge variant="success" className="text-xs">
-                    Courante
-                  </Badge>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`font-mono text-sm font-medium ${
+                    version.isCurrent ? 'text-primary-700' : 'text-slate-700'
+                  }`}>
+                    v{version.versionNumber}
+                  </span>
+                  {version.isCurrent && (
+                    <Badge variant="success" className="text-xs">
+                      Courante
+                    </Badge>
+                  )}
+                </div>
+                {version.name && (
+                  <p className="text-xs text-slate-600 truncate mt-0.5" title={version.name}>
+                    {version.name}
+                  </p>
                 )}
-              </div>
-
-              <div className="text-sm text-slate-500">
-                {formatFileSize(version.size)} • {formatDate(version.createdAt)}
+                <div className="text-xs text-slate-500 mt-0.5">
+                  {formatFileSize(version.size)} • {formatDate(version.createdAt)}
+                </div>
               </div>
 
               <div className="flex items-center gap-1">
+                {onPreviewVersion && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => handlePreviewVersion(version.id, version.versionNumber)}
+                    disabled={previewingVersion === version.id}
+                    title="Prévisualiser cette version"
+                  >
+                    {previewingVersion === version.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </Button>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"

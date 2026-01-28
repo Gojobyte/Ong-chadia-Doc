@@ -39,12 +39,19 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  refreshTokens    RefreshToken[]
-  folders          Folder[]
-  documents        Document[]
-  documentVersions DocumentVersion[]
-  shareLinks       ShareLink[]
-  accessLogs       AccessLog[]
+  refreshTokens      RefreshToken[]
+  folders            Folder[]
+  documents          Document[]
+  documentVersions   DocumentVersion[]
+  shareLinks         ShareLink[]
+  accessLogs         AccessLog[]
+  favorites          UserFavorite[]
+  tags               Tag[]
+  projects           Project[]
+  projectMembers     ProjectMember[]
+  assignedMembers    ProjectMember[]    @relation("AssignedByUser")
+  linkedDocuments    ProjectDocument[]  @relation("LinkedByUser")
+  documentComments   DocumentComment[]
 
   @@map("users")
 }
@@ -76,8 +83,10 @@ model Folder {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  permissions FolderPermission[]
-  documents   Document[]
+  permissions       FolderPermission[]
+  documents         Document[]
+  favorites         UserFavorite[]
+  metadataTemplates MetadataTemplate[]
 
   @@unique([name, parentId])
   @@index([parentId])
@@ -96,6 +105,7 @@ model FolderPermission {
 
   @@unique([folderId, role])
   @@index([folderId])
+  @@index([role]) // Index for permission lookups by role
   @@map("folder_permissions")
 }
 
@@ -115,12 +125,35 @@ model Document {
   versions         DocumentVersion[] @relation("DocumentVersions")
   shareLinks       ShareLink[]
   accessLogs       AccessLog[]
+  favorites        UserFavorite[]
+  tags             DocumentTag[]
+  projectDocuments ProjectDocument[]
+  metadata         DocumentMetadata?
+  comments         DocumentComment[]
   createdAt        DateTime          @default(now()) @map("created_at")
   updatedAt        DateTime          @updatedAt @map("updated_at")
 
   @@index([folderId])
   @@index([uploadedById])
+  @@index([name]) // Index for document name searches
+  @@index([createdAt]) // Index for date range queries
   @@map("documents")
+}
+
+// DOCUMENT COMMENT MODEL - Comments on documents
+model DocumentComment {
+  id         String   @id @default(cuid())
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  authorId   String   @map("author_id")
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content    String   @db.Text
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([documentId])
+  @@index([authorId])
+  @@map("document_comments")
 }
 
 // DOCUMENT VERSION MODEL - Version History
@@ -129,6 +162,8 @@ model DocumentVersion {
   documentId    String    @map("document_id")
   document      Document  @relation("DocumentVersions", fields: [documentId], references: [id], onDelete: Cascade)
   versionNumber Int       @map("version_number")
+  name          String?   // File name for this version
+  mimeType      String?   @map("mime_type") // MIME type for this version
   storagePath   String    @unique @map("storage_path")
   size          Int       // in bytes
   uploadedById  String    @map("uploaded_by_id")
@@ -169,6 +204,8 @@ model ShareLink {
 
   @@index([documentId])
   @@index([token])
+  @@index([expiresAt]) // Index for expiration queries
+  @@index([documentId, revokedAt]) // Composite index for active links lookup
   @@map("share_links")
 }
 
@@ -187,4 +224,161 @@ model AccessLog {
   @@index([documentId, createdAt])
   @@index([userId])
   @@map("access_logs")
+}
+
+// TAG MODEL - Document categorization
+model Tag {
+  id          String        @id @default(cuid())
+  name        String        @unique
+  color       String        @default("#6366f1")
+  createdById String        @map("created_by_id")
+  createdBy   User          @relation(fields: [createdById], references: [id])
+  documents   DocumentTag[]
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@index([name])
+  @@map("tags")
+}
+
+// DOCUMENT TAG MODEL - Many-to-many relation
+model DocumentTag {
+  documentId String   @map("document_id")
+  tagId      String   @map("tag_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@id([documentId, tagId])
+  @@map("document_tags")
+}
+
+// USER FAVORITE MODEL - Bookmarked documents and folders
+model UserFavorite {
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentId String?   @map("document_id")
+  document   Document? @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  folderId   String?   @map("folder_id")
+  folder     Folder?   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@unique([userId, documentId])
+  @@unique([userId, folderId])
+  @@index([userId])
+  @@map("user_favorites")
+}
+
+// METADATA TEMPLATE MODEL - Custom metadata fields per folder
+model MetadataTemplate {
+  id        String             @id @default(cuid())
+  name      String
+  folderId  String?            @map("folder_id")
+  folder    Folder?            @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  fields    Json               // [{ key, label, type: 'text'|'date'|'number'|'select', required, options? }]
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
+
+  documents DocumentMetadata[]
+
+  @@index([folderId])
+  @@map("metadata_templates")
+}
+
+// DOCUMENT METADATA MODEL - Custom metadata values per document
+model DocumentMetadata {
+  id         String           @id @default(cuid())
+  documentId String           @unique @map("document_id")
+  document   Document         @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  templateId String           @map("template_id")
+  template   MetadataTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  values     Json             // { [key]: value }
+  updatedAt  DateTime         @updatedAt @map("updated_at")
+
+  @@index([templateId])
+  @@map("document_metadata")
+}
+
+// =====================
+// EPIC 3: PROJECT MANAGEMENT
+// =====================
+
+// ENUM - Project Status
+enum ProjectStatus {
+  DRAFT
+  PREPARATION
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// PROJECT MODEL - Core project entity
+model Project {
+  id          String        @id @default(uuid())
+  name        String
+  description String?       @db.Text
+  status      ProjectStatus @default(DRAFT)
+  startDate   DateTime?     @map("start_date")
+  endDate     DateTime?     @map("end_date")
+  budget      Decimal?      @db.Decimal(15, 2)
+  createdById String        @map("created_by_id")
+  createdBy   User          @relation(fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  deletedAt   DateTime?     @map("deleted_at")
+
+  members   ProjectMember[]
+  documents ProjectDocument[]
+
+  @@index([status])
+  @@index([createdById])
+  @@index([deletedAt])
+  @@map("projects")
+}
+
+// ENUM - Project Member Role
+enum ProjectRole {
+  PROJECT_MANAGER
+  MEMBER
+  VOLUNTEER
+}
+
+// PROJECT MEMBER MODEL - Project team assignments
+model ProjectMember {
+  id           String      @id @default(uuid())
+  projectId    String      @map("project_id")
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId       String      @map("user_id")
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         ProjectRole @default(MEMBER)
+  assignedById String      @map("assigned_by_id")
+  assignedBy   User        @relation("AssignedByUser", fields: [assignedById], references: [id])
+  assignedAt   DateTime    @default(now()) @map("assigned_at")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@unique([projectId, userId])
+  @@index([projectId])
+  @@index([userId])
+  @@index([assignedById])
+  @@map("project_members")
+}
+
+// PROJECT DOCUMENT MODEL - Link documents to projects
+model ProjectDocument {
+  id         String   @id @default(uuid())
+  projectId  String   @map("project_id")
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  linkedById String   @map("linked_by_id")
+  linkedBy   User     @relation("LinkedByUser", fields: [linkedById], references: [id])
+  linkedAt   DateTime @default(now()) @map("linked_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([projectId, documentId])
+  @@index([projectId])
+  @@index([documentId])
+  @@index([linkedById])
+  @@map("project_documents")
 }

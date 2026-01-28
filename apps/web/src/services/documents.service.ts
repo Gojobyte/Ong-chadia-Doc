@@ -63,8 +63,8 @@ export const documentsService = {
    * Get document by ID
    */
   async getById(id: string): Promise<DocumentResponse> {
-    const response = await api.get<DocumentResponse>(`/documents/${id}`);
-    return response.data;
+    const response = await api.get<{ data: DocumentResponse }>(`/documents/${id}`);
+    return response.data.data;
   },
 
   /**
@@ -124,16 +124,16 @@ export const documentsService = {
    * Get download URL for a document
    */
   async getDownloadUrl(id: string): Promise<DownloadUrlResponse> {
-    const response = await api.get<DownloadUrlResponse>(`/documents/${id}/download`);
-    return response.data;
+    const response = await api.get<{ data: DownloadUrlResponse }>(`/documents/${id}/download`);
+    return response.data.data;
   },
 
   /**
    * Update document (rename or move)
    */
   async update(id: string, data: UpdateDocumentDto): Promise<DocumentResponse> {
-    const response = await api.patch<DocumentResponse>(`/documents/${id}`, data);
-    return response.data;
+    const response = await api.patch<{ data: DocumentResponse }>(`/documents/${id}`, data);
+    return response.data.data;
   },
 
   /**
@@ -151,10 +151,10 @@ export const documentsService = {
    * Get all versions of a document
    */
   async getVersions(documentId: string): Promise<VersionListResponse> {
-    const response = await api.get<VersionListResponse>(
+    const response = await api.get<{ data: VersionListResponse }>(
       `/documents/${documentId}/versions`
     );
-    return response.data;
+    return response.data.data;
   },
 
   /**
@@ -216,10 +216,10 @@ export const documentsService = {
     documentId: string,
     versionId: string
   ): Promise<DownloadUrlResponse> {
-    const response = await api.get<DownloadUrlResponse>(
+    const response = await api.get<{ data: DownloadUrlResponse }>(
       `/documents/${documentId}/versions/${versionId}/download`
     );
-    return response.data;
+    return response.data.data;
   },
 
   /**

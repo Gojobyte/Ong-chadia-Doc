@@ -114,15 +114,22 @@ export async function uploadDocument(
 
 /**
  * Get a document by ID with signed URL
+ * Uses current version's storage path if available
  */
 export async function getDocumentById(id: string): Promise<DocumentResponse> {
-  const document = await prisma.document.findUnique({ where: { id } });
+  const document = await prisma.document.findUnique({
+    where: { id },
+    include: { currentVersion: true },
+  });
 
   if (!document) {
     throw new NotFoundError('Document non trouvé');
   }
 
-  const url = await storageService.getSignedUrl(document.storagePath);
+  // Use current version's storage path if available, otherwise use original
+  const storagePath = document.currentVersion?.storagePath ?? document.storagePath;
+  const url = await storageService.getSignedUrl(storagePath);
+
   return mapDocumentToResponse(document, url);
 }
 
@@ -168,14 +175,16 @@ export async function getDocumentsByFolder(
       skip,
       take: limit,
       orderBy: { [sortField]: sortOrder },
+      include: { currentVersion: true },
     }),
     prisma.document.count({ where: { folderId } }),
   ]);
 
-  // Get signed URLs for all documents
+  // Get signed URLs for all documents (using current version if available)
   const documentsWithUrls = await Promise.all(
     documents.map(async (doc) => {
-      const url = await storageService.getSignedUrl(doc.storagePath);
+      const storagePath = doc.currentVersion?.storagePath ?? doc.storagePath;
+      const url = await storageService.getSignedUrl(storagePath);
       return mapDocumentToResponse(doc, url);
     })
   );
@@ -193,16 +202,22 @@ export async function getDocumentsByFolder(
 
 /**
  * Get a download URL for a document
+ * Uses current version's storage path if available
  */
 export async function getDownloadUrl(id: string): Promise<{ url: string; expiresIn: number }> {
-  const document = await prisma.document.findUnique({ where: { id } });
+  const document = await prisma.document.findUnique({
+    where: { id },
+    include: { currentVersion: true },
+  });
 
   if (!document) {
     throw new NotFoundError('Document non trouvé');
   }
 
+  // Use current version's storage path if available, otherwise use original
+  const storagePath = document.currentVersion?.storagePath ?? document.storagePath;
   const expiresIn = 3600; // 1 hour
-  const url = await storageService.getSignedUrl(document.storagePath, expiresIn);
+  const url = await storageService.getSignedUrl(storagePath, expiresIn);
 
   return { url, expiresIn };
 }

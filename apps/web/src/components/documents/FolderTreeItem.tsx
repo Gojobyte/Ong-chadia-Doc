@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Loader2, MoreHorizontal } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFolderChildren } from '@/hooks/useFolders';
 import { FolderContextMenu } from './FolderContextMenu';
@@ -30,7 +30,7 @@ export function FolderTreeItem({
   const hasChildren = folder._count?.children && folder._count.children > 0;
 
   // Only fetch children when expanded
-  const { data: children, isLoading } = useFolderChildren(
+  const { data: children, isLoading, error } = useFolderChildren(
     isExpanded ? folder.id : null
   );
 
@@ -52,11 +52,12 @@ export function FolderTreeItem({
       {/* Folder item row */}
       <div
         className={cn(
-          'flex items-center gap-1 px-2 py-1.5 rounded-md cursor-pointer transition-colors group',
-          'hover:bg-slate-100',
-          isSelected && 'bg-primary-50 text-primary-700 hover:bg-primary-100'
+          'flex items-center gap-1 px-3 py-2 rounded-lg cursor-pointer transition-colors duration-150 group mb-0.5',
+          isSelected
+            ? 'bg-primary-50 text-primary-700'
+            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
         )}
-        style={{ paddingLeft: `${level * 16 + 8}px` }}
+        style={{ paddingLeft: `${level * 16 + 12}px` }}
         onClick={handleSelect}
       >
         {/* Expand/collapse button */}
@@ -78,9 +79,9 @@ export function FolderTreeItem({
 
         {/* Folder icon */}
         {isExpanded ? (
-          <FolderOpen className="w-4 h-4 text-amber-500 flex-shrink-0" />
+          <FolderOpen className={cn('w-4 h-4 flex-shrink-0', isSelected ? 'text-primary-600' : 'text-slate-400')} />
         ) : (
-          <Folder className="w-4 h-4 text-amber-500 flex-shrink-0" />
+          <Folder className={cn('w-4 h-4 flex-shrink-0', isSelected ? 'text-primary-600' : 'text-slate-400')} />
         )}
 
         {/* Folder name */}
@@ -89,7 +90,6 @@ export function FolderTreeItem({
         {/* Context menu */}
         <div className="opacity-0 group-hover:opacity-100 transition-opacity">
           <FolderContextMenu
-            folder={folder}
             onCreateSubfolder={() => onCreateSubfolder(folder.id)}
             onRename={() => onRename(folder)}
             onMove={() => onMove(folder)}
@@ -99,6 +99,15 @@ export function FolderTreeItem({
       </div>
 
       {/* Children (rendered when expanded) */}
+      {isExpanded && error && (
+        <div
+          className="flex items-center gap-2 px-3 py-2 text-xs text-red-500"
+          style={{ paddingLeft: `${(level + 1) * 16 + 12}px` }}
+        >
+          <AlertCircle className="w-3 h-3" />
+          Erreur de chargement
+        </div>
+      )}
       {isExpanded && children && (
         <div>
           {children.map((child) => (

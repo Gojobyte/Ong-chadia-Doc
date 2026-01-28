@@ -145,9 +145,9 @@ export function ShareButton({ documentId }: ShareButtonProps) {
                 <Input value={shareUrl} readOnly className="text-sm" />
                 <Button
                   variant="outline"
-                  size="icon"
+                  size="sm"
                   onClick={handleCopy}
-                  className="flex-shrink-0"
+                  className="flex-shrink-0 w-8 h-8 p-0"
                 >
                   {copied ? (
                     <Check className="w-4 h-4 text-green-500" />

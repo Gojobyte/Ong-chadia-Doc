@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eye, EyeOff, CheckCircle2, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
 
 export default function LoginPage() {
@@ -28,188 +26,157 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex bg-white">
-      {/* Left Panel - Brand & Welcome */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary-900">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-800 via-primary-900 to-slate-900 opacity-90" />
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488521787991-ed7bbaae773c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80')] bg-cover bg-center mix-blend-overlay opacity-20" />
+    <div className="min-h-screen flex">
+      {/* Left Panel - Premium Gradient Branding */}
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 p-12 flex-col justify-between relative overflow-hidden">
+        {/* Animated gradient orbs */}
+        <div className="absolute top-20 left-20 w-72 h-72 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
 
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between h-full p-12 text-white">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/10 backdrop-blur-sm rounded-lg flex items-center justify-center border border-white/20">
-              <span className="font-bold text-xl">OC</span>
-            </div>
-            <span className="text-xl font-bold tracking-tight">ONG Chadia</span>
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+            <img
+              src="/logo.png"
+              alt="ONG Chadia"
+              className="w-6 h-6 object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+              }}
+            />
           </div>
+          <span className="text-xl font-semibold text-white">ONG Chadia</span>
+        </div>
 
-          <div className="max-w-lg mb-12">
-            <motion.h1
-              initial={{
-                opacity: 0,
-                y: 20,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                delay: 0.2,
-              }}
-              className="text-4xl font-bold mb-6 leading-tight"
-            >
-              Empowering humanitarian work through organized documentation.
-            </motion.h1>
-            <motion.p
-              initial={{
-                opacity: 0,
-                y: 20,
-              }}
-              animate={{
-                opacity: 1,
-                y: 0,
-              }}
-              transition={{
-                delay: 0.4,
-              }}
-              className="text-primary-100 text-lg leading-relaxed"
-            >
-              Securely manage field reports, beneficiary data, and project
-              documentation in one centralized platform designed for impact.
-            </motion.p>
-
-            <motion.div
-              initial={{
-                opacity: 0,
-              }}
-              animate={{
-                opacity: 1,
-              }}
-              transition={{
-                delay: 0.6,
-              }}
-              className="mt-8 flex gap-4"
-            >
-              <div className="flex items-center gap-2 text-sm text-primary-200">
-                <CheckCircle2 className="w-5 h-5 text-accent-500" />
-                <span>Secure Access</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-primary-200">
-                <CheckCircle2 className="w-5 h-5 text-accent-500" />
-                <span>Offline Capable</span>
-              </div>
-            </motion.div>
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="w-6 h-6 text-indigo-400" />
+            <span className="text-indigo-300 text-sm font-medium uppercase tracking-wider">Plateforme Premium</span>
           </div>
+          <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
+            Gestion documentaire{' '}
+            <span className="text-gradient">simplifiée</span>
+          </h1>
+          <p className="text-slate-300 text-lg leading-relaxed">
+            Organisez, partagez et sécurisez vos documents dans une plateforme unifiée conçue pour les équipes modernes.
+          </p>
 
-          <div className="text-sm text-primary-300">
-            © 2024 ONG Chadia Humanitarian Organization
+          {/* Features */}
+          <div className="mt-10 grid grid-cols-2 gap-4">
+            {['Sécurité avancée', 'Collaboration', 'Recherche IA', 'Accès mobile'].map((feature, i) => (
+              <div key={feature} className="flex items-center gap-2 text-slate-400">
+                <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400" />
+                <span className="text-sm">{feature}</span>
+              </div>
+            ))}
           </div>
         </div>
+
+        <p className="relative z-10 text-slate-500 text-sm">
+          © 2024 ONG Chadia - Organisation Humanitaire
+        </p>
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 bg-white">
-        <motion.div
-          initial={{
-            opacity: 0,
-            x: 20,
-          }}
-          animate={{
-            opacity: 1,
-            x: 0,
-          }}
-          className="w-full max-w-md space-y-8"
-        >
-          <div className="text-center lg:text-left">
-            <div className="lg:hidden flex justify-center mb-6">
-              <div className="w-12 h-12 bg-primary-800 rounded-xl flex items-center justify-center text-white font-bold text-xl">
-                OC
-              </div>
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
+        <div className="w-full max-w-md animate-fade-in-up">
+          {/* Mobile logo */}
+          <div className="lg:hidden flex justify-center mb-8">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+              <img
+                src="/logo.png"
+                alt="ONG Chadia"
+                className="w-8 h-8 object-cover"
+              />
             </div>
-            <h2 className="text-3xl font-bold text-slate-900">Welcome back</h2>
-            <p className="mt-2 text-slate-600">
-              Please enter your details to sign in.
-            </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">
+            Connexion
+          </h2>
+          <p className="text-slate-500 mb-8">
+            Entrez vos identifiants pour accéder à votre espace.
+          </p>
+
+          <form onSubmit={handleLogin} className="space-y-5">
             {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg">
+              <div className="p-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl">
                 {error}
               </div>
             )}
 
-            <div className="space-y-4">
-              <Input
-                label="Email address"
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Adresse email
+              </label>
+              <input
                 type="email"
-                placeholder="name@ongchadia.org"
+                placeholder="nom@ongchadia.org"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200"
               />
+            </div>
 
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Mot de passe
+              </label>
               <div className="relative">
-                <Input
-                  label="Password"
+                <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
+                  placeholder="Entrez votre mot de passe"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  className="w-full px-4 py-3 pr-12 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-200"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[34px] text-slate-400 hover:text-slate-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
+                    <EyeOff className="w-5 h-5" />
                   ) : (
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-5 h-5" />
                   )}
                 </button>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer group">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 rounded border-slate-300 text-primary-600 focus:ring-primary-500"
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="text-sm text-slate-600">Remember me</span>
+                <span className="text-sm text-slate-600 group-hover:text-slate-900 transition-colors">Se souvenir de moi</span>
               </label>
-              <a
-                href="#"
-                className="text-sm font-medium text-primary-700 hover:text-primary-800"
-              >
-                Forgot password?
+              <a href="#" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
+                Mot de passe oublié?
               </a>
             </div>
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold shadow-lg shadow-indigo-500/25 transition-all duration-200 btn-premium"
               size="lg"
               isLoading={isLoading}
               rightIcon={!isLoading && <ArrowRight className="w-4 h-4" />}
             >
-              Sign in
+              Se connecter
             </Button>
           </form>
 
-          <p className="text-center text-sm text-slate-500">
-            Don't have an account?{' '}
-            <a
-              href="#"
-              className="font-medium text-primary-700 hover:text-primary-800"
-            >
-              Contact your administrator
+          <p className="text-center text-sm text-slate-500 mt-8">
+            Pas encore de compte?{' '}
+            <a href="#" className="text-indigo-600 hover:text-indigo-700 font-medium transition-colors">
+              Contactez votre administrateur
             </a>
           </p>
-        </motion.div>
+        </div>
       </div>
     </div>
   )

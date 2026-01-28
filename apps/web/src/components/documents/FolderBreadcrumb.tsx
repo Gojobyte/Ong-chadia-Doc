@@ -27,7 +27,7 @@ export function FolderBreadcrumb({ folderId, onNavigate }: FolderBreadcrumbProps
         </>
       ) : (
         path?.map((folder, index) => (
-          <div key={folder.id} className="flex items-center">
+          <div key={folder.id || `folder-${index}`} className="flex items-center">
             <ChevronRight className="w-4 h-4 text-slate-400" />
             <button
               onClick={() => onNavigate(folder.id)}

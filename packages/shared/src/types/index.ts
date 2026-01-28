@@ -7,3 +7,5 @@ export * from './version.types';
 export * from './search.types';
 export * from './share.types';
 export * from './access-log.types';
+export * from './project.types';
+export * from './comment.types';

@@ -5,6 +5,8 @@ export interface DocumentVersionResponse {
   id: string;
   documentId: string;
   versionNumber: number;
+  name?: string | null; // File name for this version
+  mimeType?: string | null; // MIME type for this version
   size: number;
   uploadedById: string;
   createdAt: string;

@@ -17,6 +17,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useDocumentSelection } from '@/stores/document-selection.store';
+import { useDocumentTags } from '@/hooks/useTags';
+import { cn } from '@/lib/utils';
 import type { DocumentResponse } from '@ong-chadia/shared';
 
 // File type icon mapping
@@ -51,6 +55,8 @@ interface DocumentRowProps {
   onRename?: (doc: DocumentResponse) => void;
   onDelete?: (doc: DocumentResponse) => void;
   onDownload?: (doc: DocumentResponse) => void;
+  selectable?: boolean;
+  allDocumentIds?: string[];
 }
 
 export function DocumentRow({
@@ -59,27 +65,87 @@ export function DocumentRow({
   onRename,
   onDelete,
   onDownload,
+  selectable = false,
+  allDocumentIds = [],
 }: DocumentRowProps) {
+  const { isSelected, toggle, selectRange, lastSelectedId } = useDocumentSelection();
+  const { data: documentTags = [] } = useDocumentTags(document.id);
+  const selected = isSelected(document.id);
+
   const IconComponent = FILE_TYPE_ICONS[document.mimeType] || File;
   const iconColor = FILE_TYPE_COLORS[document.mimeType] || 'text-slate-400';
 
   // Extract file extension
   const extension = document.name.split('.').pop()?.toUpperCase() || '';
 
+  const handleRowClick = (e: React.MouseEvent) => {
+    if (selectable && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      toggle(document.id);
+    } else if (selectable && e.shiftKey && lastSelectedId) {
+      e.preventDefault();
+      selectRange(lastSelectedId, document.id, allDocumentIds);
+    } else {
+      onClick?.(document);
+    }
+  };
+
+  const handleCheckboxChange = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (e.shiftKey && lastSelectedId) {
+      selectRange(lastSelectedId, document.id, allDocumentIds);
+    } else {
+      toggle(document.id);
+    }
+  };
+
   return (
     <tr
-      className="hover:bg-slate-50/80 transition-colors group cursor-pointer"
-      onClick={() => onClick?.(document)}
+      className={cn(
+        'hover:bg-slate-50/80 transition-colors group cursor-pointer',
+        selected && 'bg-primary-50/50'
+      )}
+      onClick={handleRowClick}
     >
+      {selectable && (
+        <td className="px-4 py-3 w-12" onClick={handleCheckboxChange}>
+          <Checkbox
+            checked={selected}
+            className="data-[state=checked]:bg-primary-600 data-[state=checked]:border-primary-600"
+          />
+        </td>
+      )}
       <td className="px-4 py-3">
         <div className="flex items-center gap-3 group-hover:text-primary-700">
           <div className={`w-8 h-8 rounded flex items-center justify-center bg-slate-100 ${iconColor}`}>
             <IconComponent className="w-4 h-4" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <span className="font-medium text-slate-900 truncate block">
               {document.name}
             </span>
+            {/* Tags */}
+            {documentTags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {documentTags.slice(0, 3).map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="px-1.5 py-0.5 rounded-full text-[10px] font-medium"
+                    style={{
+                      backgroundColor: tag.color + '20',
+                      color: tag.color,
+                    }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+                {documentTags.length > 3 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600">
+                    +{documentTags.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </td>

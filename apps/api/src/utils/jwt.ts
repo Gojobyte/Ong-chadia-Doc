@@ -6,6 +6,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
 export interface TokenPayload {
   userId: string;
   type: 'access' | 'refresh';
+  tokenId?: string; // For refresh tokens: enables O(1) DB lookup
 }
 
 export function generateAccessToken(userId: string): string {
@@ -16,9 +17,9 @@ export function generateAccessToken(userId: string): string {
   );
 }
 
-export function generateRefreshToken(userId: string): string {
+export function generateRefreshToken(userId: string, tokenId?: string): string {
   return jwt.sign(
-    { userId, type: 'refresh' } as TokenPayload,
+    { userId, type: 'refresh', tokenId } as TokenPayload,
     JWT_REFRESH_SECRET,
     { expiresIn: '7d' }
   );

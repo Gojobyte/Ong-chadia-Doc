@@ -8,9 +8,12 @@ import {
   LogOut,
   X,
   Shield,
+  Star,
+  Tag,
 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { useAuth } from '@/hooks/useAuth'
+import { useFavoritesCount } from '@/hooks/useFavorites'
 import { Role } from '@ong-chadia/shared'
 
 interface SidebarProps {
@@ -20,18 +23,23 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { logout, user } = useAuth()
+  const { data: favoritesCount } = useFavoritesCount()
 
   const isSuperAdmin = user?.role === Role.SUPER_ADMIN
 
   const navItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
     { icon: FileText, label: 'Documents', href: '/documents' },
-    { icon: FolderKanban, label: 'Projects', href: '/projects' },
-    { icon: Users, label: 'Team', href: '/team' },
-    { icon: Settings, label: 'Settings', href: '/settings' },
-    // Admin link - only for Super-Admin
+    { icon: Star, label: 'Favoris', href: '/favorites', badge: favoritesCount },
+    { icon: FolderKanban, label: 'Projets', href: '/projects' },
+    { icon: Users, label: 'Équipe', href: '/team', disabled: true },
+    { icon: Settings, label: 'Paramètres', href: '/settings', disabled: true },
+    // Admin links - only for Super-Admin
     ...(isSuperAdmin
-      ? [{ icon: Shield, label: 'Utilisateurs', href: '/admin/users' }]
+      ? [
+          { icon: Shield, label: 'Utilisateurs', href: '/admin/users' },
+          { icon: Tag, label: 'Gestion Tags', href: '/admin/tags' },
+        ]
       : []),
   ]
 
@@ -60,9 +68,11 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Header */}
           <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-800 rounded-lg flex items-center justify-center text-white font-bold">
-                OC
-              </div>
+              <img
+                src="/logo.png"
+                alt="ONG Chadia"
+                className="w-8 h-8 rounded-lg object-cover"
+              />
               <span className="font-bold text-lg text-slate-900">ONG Chadia</span>
             </div>
             <button
@@ -75,20 +85,43 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Navigation */}
           <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.href}
-                to={item.href}
-                onClick={() => window.innerWidth < 1024 && onClose()}
-                className={({ isActive }) => `
-                  flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                  ${isActive ? 'bg-primary-50 text-primary-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
-                `}
-              >
-                <item.icon className="w-5 h-5 mr-3" />
-                {item.label}
-              </NavLink>
-            ))}
+            {navItems.map((item) => {
+              const isDisabled = 'disabled' in item && item.disabled;
+
+              if (isDisabled) {
+                return (
+                  <div
+                    key={item.href}
+                    className="flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 cursor-not-allowed"
+                    title="Bientôt disponible"
+                  >
+                    <item.icon className="w-5 h-5 mr-3" />
+                    {item.label}
+                    <span className="ml-auto text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Bientôt</span>
+                  </div>
+                );
+              }
+
+              return (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => window.innerWidth < 1024 && onClose()}
+                  className={({ isActive }) => `
+                    flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                    ${isActive ? 'bg-primary-50 text-primary-800' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
+                  `}
+                >
+                  <item.icon className={`w-5 h-5 mr-3 ${item.icon === Star ? 'text-amber-500' : ''}`} />
+                  {item.label}
+                  {'badge' in item && item.badge !== undefined && item.badge > 0 && (
+                    <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </NavLink>
+              );
+            })}
           </nav>
 
           {/* Footer */}
@@ -99,7 +132,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               onClick={handleLogout}
               leftIcon={<LogOut className="w-4 h-4" />}
             >
-              Sign Out
+              Déconnexion
             </Button>
           </div>
         </div>

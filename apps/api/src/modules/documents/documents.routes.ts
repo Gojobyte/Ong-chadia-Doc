@@ -9,6 +9,9 @@ import * as documentsController from './documents.controller.js';
 import * as versionsController from './versions.controller.js';
 import * as searchController from './search.controller.js';
 import * as sharingController from './sharing.controller.js';
+import * as tagsController from '../tags/tags.controller.js';
+import * as bulkController from './bulk.controller.js';
+import * as commentsController from './comments.controller.js';
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from './documents.service.js';
 import { z } from 'zod';
 
@@ -36,6 +39,19 @@ const shareLinkIdSchema = z.object({
   linkId: z.string().cuid('ID de lien invalide'),
 });
 
+const commentIdSchema = z.object({
+  id: z.string().cuid('ID de document invalide'),
+  commentId: z.string().cuid('ID de commentaire invalide'),
+});
+
+const createCommentSchema = z.object({
+  content: z.string().min(1, 'Le contenu ne peut pas être vide').max(5000, 'Le contenu est trop long'),
+});
+
+const updateCommentSchema = z.object({
+  content: z.string().min(1, 'Le contenu ne peut pas être vide').max(5000, 'Le contenu est trop long'),
+});
+
 // Configure multer for file upload
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -54,6 +70,25 @@ router.use(authenticate);
 
 // GET /api/documents/search - Search documents (must be before :id routes)
 router.get('/search', searchController.searchDocuments);
+
+// =====================
+// BULK OPERATIONS ROUTES (must be before :id routes)
+// =====================
+
+// POST /api/documents/bulk/delete - Delete multiple documents
+router.post('/bulk/delete', bulkController.bulkDelete);
+
+// POST /api/documents/bulk/move - Move multiple documents
+router.post('/bulk/move', bulkController.bulkMove);
+
+// POST /api/documents/bulk/tags - Add tags to multiple documents
+router.post('/bulk/tags', bulkController.bulkAddTags);
+
+// POST /api/documents/bulk/download - Download multiple documents as ZIP
+router.post('/bulk/download', bulkController.bulkDownload);
+
+// POST /api/documents/bulk/copy - Copy multiple documents
+router.post('/bulk/copy', bulkController.bulkCopy);
 
 // POST /api/documents/upload - Upload a document
 router.post(
@@ -175,6 +210,79 @@ router.get(
   isSuperAdmin,
   canAccessDocument('READ'),
   sharingController.getAccessLogs
+);
+
+// =====================
+// TAGS ROUTES
+// =====================
+
+// GET /api/documents/:id/tags - Get document tags
+router.get(
+  '/:id/tags',
+  validateParams(documentIdSchema),
+  canAccessDocument('READ'),
+  tagsController.getDocumentTags
+);
+
+// POST /api/documents/:id/tags - Add tags to document
+router.post(
+  '/:id/tags',
+  validateParams(documentIdSchema),
+  canAccessDocument('WRITE'),
+  tagsController.addDocumentTags
+);
+
+// PUT /api/documents/:id/tags - Set all document tags (replace)
+router.put(
+  '/:id/tags',
+  validateParams(documentIdSchema),
+  canAccessDocument('WRITE'),
+  tagsController.setDocumentTags
+);
+
+// DELETE /api/documents/:id/tags/:tagId - Remove tag from document
+router.delete(
+  '/:id/tags/:tagId',
+  canAccessDocument('WRITE'),
+  tagsController.removeDocumentTag
+);
+
+// =====================
+// COMMENTS ROUTES
+// =====================
+
+// GET /api/documents/:id/comments - Get all comments
+router.get(
+  '/:id/comments',
+  validateParams(documentIdSchema),
+  canAccessDocument('READ'),
+  commentsController.getComments
+);
+
+// POST /api/documents/:id/comments - Create a comment
+router.post(
+  '/:id/comments',
+  validateParams(documentIdSchema),
+  validate(createCommentSchema),
+  canAccessDocument('READ'),
+  commentsController.createComment
+);
+
+// PATCH /api/documents/:id/comments/:commentId - Update a comment
+router.patch(
+  '/:id/comments/:commentId',
+  validateParams(commentIdSchema),
+  validate(updateCommentSchema),
+  canAccessDocument('READ'),
+  commentsController.updateComment
+);
+
+// DELETE /api/documents/:id/comments/:commentId - Delete a comment
+router.delete(
+  '/:id/comments/:commentId',
+  validateParams(commentIdSchema),
+  canAccessDocument('READ'),
+  commentsController.deleteComment
 );
 
 export default router;

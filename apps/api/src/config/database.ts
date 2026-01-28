@@ -16,4 +16,26 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
+/**
+ * Pre-warm database connection on startup
+ * This prevents cold start latency on first request
+ */
+export async function warmupDatabase(): Promise<void> {
+  try {
+    // Simple query to establish connection
+    await prisma.$queryRaw`SELECT 1`;
+    console.log('Database connection warmed up');
+  } catch (error) {
+    console.error('Database warmup failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Gracefully disconnect from database
+ */
+export async function disconnectDatabase(): Promise<void> {
+  await prisma.$disconnect();
+}
+
 export default prisma;

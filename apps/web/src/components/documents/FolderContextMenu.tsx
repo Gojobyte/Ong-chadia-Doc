@@ -7,10 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import type { FolderResponse } from '@ong-chadia/shared';
-
 interface FolderContextMenuProps {
-  folder: FolderResponse;
   onCreateSubfolder: () => void;
   onRename: () => void;
   onMove: () => void;
@@ -18,7 +15,6 @@ interface FolderContextMenuProps {
 }
 
 export function FolderContextMenu({
-  folder,
   onCreateSubfolder,
   onRename,
   onMove,
