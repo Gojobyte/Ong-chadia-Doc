@@ -1,7 +1,7 @@
 import { Users, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { Role, ProjectRole, type ProjectMember } from '@ong-chadia/shared';
+import { ProjectRole, type ProjectMember } from '@ong-chadia/shared';
 
 interface ProjectTeamProps {
   members: ProjectMember[];

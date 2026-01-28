@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Calendar,
   FolderTree,
@@ -99,7 +99,7 @@ function FolderItem({ id, name, hasChildren, depth, selectedId, onSelect }: Fold
               key={child.id}
               id={child.id}
               name={child.name}
-              hasChildren={child._count?.children > 0 || false}
+              hasChildren={(child._count?.children ?? 0) > 0}
               depth={depth + 1}
               selectedId={selectedId}
               onSelect={onSelect}
@@ -158,13 +158,6 @@ export function SearchFilters({
   const handleSizePreset = (min: string, max: string) => {
     onFilterChange('sizeMin', min);
     onFilterChange('sizeMax', max);
-  };
-
-  const getSizePresetLabel = () => {
-    const preset = SIZE_PRESETS.find(
-      (p) => p.min === sizeMin && p.max === sizeMax
-    );
-    return preset?.label || 'Personnalisé';
   };
 
   return (
@@ -294,7 +287,7 @@ export function SearchFilters({
                   key={folder.id}
                   id={folder.id}
                   name={folder.name}
-                  hasChildren={folder._count?.children > 0 || false}
+                  hasChildren={(folder._count?.children ?? 0) > 0}
                   depth={0}
                   selectedId={folderId}
                   onSelect={(id) => onFilterChange('folderId', id)}
@@ -328,7 +321,8 @@ export function SearchFilters({
                       style={{
                         backgroundColor: tag.color + '20',
                         color: tag.color,
-                        ringColor: isSelected ? tag.color : undefined,
+                        // @ts-expect-error ringColor is a Tailwind CSS variable
+                        '--tw-ring-color': isSelected ? tag.color : undefined,
                       }}
                     >
                       {tag.name}

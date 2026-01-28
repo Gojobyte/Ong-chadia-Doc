@@ -1,4 +1,5 @@
 import { api } from './api';
+import type { ProjectStatus } from '@ong-chadia/shared';
 
 // API Response types
 export interface ProjectStats {
@@ -14,7 +15,7 @@ export interface ProjectStats {
 export interface MyProject {
   id: string;
   name: string;
-  status: string;
+  status: ProjectStatus;
   endDate: string | null;
 }
 
